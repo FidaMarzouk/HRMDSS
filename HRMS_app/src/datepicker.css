@@ -1,0 +1,127 @@
+.custom-datepicker-container .react-datepicker,
+.custom-datepicker-container .react-datepicker__header,
+.custom-datepicker-container .react-datepicker__month-container,
+.custom-datepicker-container .react-datepicker__time-container {
+    background-color: #242424 !important;
+    border-color: #444 !important;
+    color: white !important;
+}
+/* Dark theme for React DatePicker - with increased specificity */
+.react-datepicker {
+    background-color: #242424 !important;
+    border-color: #444 !important;
+    color: white !important;
+}
+
+/* Header styles */
+.react-datepicker__header {
+    background-color: #333 !important;
+    border-bottom-color: #444 !important;
+}
+
+/* Month and time header text */
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker__day-name {
+    color: white !important;
+}
+
+/* Navigation (prev/next month) */
+.react-datepicker__navigation-icon::before {
+    border-color: #3baca5 !important;
+}
+
+/* Day styles */
+.react-datepicker__day {
+    color: #ddd !important;
+}
+
+.react-datepicker__day:hover {
+    background-color: #3baca5 !important;
+    color: #242424 !important;
+}
+
+/* Selected day styles - with higher specificity */
+.react-datepicker__day.react-datepicker__day--selected {
+    background-color: #3baca5 !important;
+    color: white !important;
+}
+
+.react-datepicker__day.react-datepicker__day--keyboard-selected {
+    background-color: rgba(59, 172, 165, 0.5) !important;
+    color: white !important;
+}
+
+/* Ensure today's date is styled correctly */
+.react-datepicker__day--today {
+    color: #2dd4bf !important;
+}
+
+.react-datepicker__day--today.react-datepicker__day--selected {
+    color: white !important;
+}
+
+.react-datepicker__month-container {
+    background-color: #242424 !important;
+}
+
+.react-datepicker__time-container,
+.react-datepicker__time-container .react-datepicker__time {
+    background-color: #242424 !important;
+    border-color: #444 !important;
+}
+
+/* Time box inside the time container */
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+    background-color: #242424 !important;
+    border-color: #444 !important;
+}
+
+/* Fix time list items */
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list {
+    background-color: #242424 !important;
+}
+
+/* Time list item */
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item {
+    color: white !important;
+    background-color: #242424 !important;
+}
+
+/* Hover effect for time list */
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover {
+    background-color: #3baca5 !important;
+    color: white !important;
+}
+
+/* Selected time list item */
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
+    background-color: #3baca5 !important;
+    color: white !important;
+}
+
+/* Month and year dropdowns */
+.react-datepicker__month-dropdown,
+.react-datepicker__year-dropdown {
+    background-color: #242424 !important;
+    border-color: #444 !important;
+}
+
+.react-datepicker__month-option,
+.react-datepicker__year-option {
+    color: white !important;
+}
+
+.react-datepicker__month-option:hover,
+.react-datepicker__year-option:hover {
+    background-color: #3baca5 !important;
+}
+
+/* Calendar popup triangle */
+.react-datepicker__triangle {
+    border-bottom-color: #333 !important;
+}
+
+.react-datepicker__triangle::before {
+    border-bottom-color: #444 !important;
+}

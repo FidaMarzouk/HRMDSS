@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Secrets: copy the .env.example files instead
+.env
+.env.*
+!.env.example
+
+# Uploaded files (user data)
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+
+# Generated
+Backend/knowledge/.index/
+HRMS_app/dist/
+*.log
+.DS_Store

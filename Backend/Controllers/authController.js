@@ -1,0 +1,155 @@
+const User = require('../Models/User');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const emailService = require('../services/emailService');
+const { RESET_TTL_MS, hashToken, issuePasswordToken, passwordLink } = require('../utils/passwordTokens');
+
+const SESSION_SECONDS = 5 * 60 * 60; // 5 hours
+
+const authCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/'
+};
+
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    // Same response for unknown email and wrong password, to avoid account enumeration.
+    const user = await User.findOne({ email: String(email).trim() }).select('+password');
+    const isMatch = user ? await bcrypt.compare(password, user.password) : false;
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: SESSION_SECONDS });
+
+    res.cookie('authToken', token, { ...authCookieOptions, maxAge: SESSION_SECONDS * 1000 });
+
+    res.status(200).json({
+      message: 'Login successful',
+      expiresIn: SESSION_SECONDS,
+      expiresAt: new Date(Date.now() + SESSION_SECONDS * 1000).toISOString(),
+      role: user.role,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error) {
+    console.error('Error in login:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.logout = (req, res) => {
+  res.clearCookie('authToken', authCookieOptions);
+  res.status(200).json({ message: 'Logged out' });
+};
+
+exports.verifyToken = (req, res) => {
+  res.status(200).json({
+    authenticated: true,
+    user: { id: req.user.id, role: req.user.role }
+  });
+};
+
+exports.requestPasswordReset = async (req, res) => {
+  const genericResponse = { message: 'If your email is registered, you will receive a password reset link.' };
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: String(email).trim() });
+    if (!user) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const token = issuePasswordToken(user, RESET_TTL_MS);
+    await user.save();
+
+    try {
+      await emailService.sendPasswordResetEmail({
+        email: user.personalEmail || user.email,
+        firstName: user.firstName,
+        resetUrl: passwordLink(token)
+      });
+    } catch (emailError) {
+      console.error('Error sending password reset email:', emailError);
+      return res.status(500).json({ message: 'Could not send the reset email. Please contact HR.' });
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error('Error in requestPasswordReset:', error);
+    res.status(500).json({ message: 'Error processing your request' });
+  }
+};
+
+const findUserByResetToken = (token) =>
+  User.findOne({
+    passwordResetTokenHash: hashToken(String(token)),
+    passwordResetExpires: { $gt: new Date() }
+  }).select('+passwordResetTokenHash +passwordResetExpires');
+
+exports.verifyResetToken = async (req, res) => {
+  try {
+    const user = await findUserByResetToken(req.params.token);
+    if (!user) {
+      return res.status(401).json({ message: 'Token is invalid or expired' });
+    }
+    res.status(200).json({ valid: true, email: user.email });
+  } catch (error) {
+    console.error('Error in verifyResetToken:', error);
+    res.status(500).json({ message: 'Error processing your request' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { password, confirmPassword } = req.body;
+
+    if (!password || !confirmPassword) {
+      return res.status(400).json({ message: 'Both password fields are required' });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await findUserByResetToken(req.params.token);
+    if (!user) {
+      return res.status(401).json({ message: 'Token is invalid or expired' });
+    }
+
+    // Single use: clear the token together with the password change.
+    user.password = await bcrypt.hash(password, 10);
+    user.passwordResetTokenHash = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    // The reset already succeeded; a failed confirmation email must not turn it into an error.
+    emailService.sendPasswordResetConfirmation({
+      email: user.personalEmail || user.email,
+      firstName: user.firstName
+    }).catch((err) => console.error('Error sending password reset confirmation:', err));
+
+    res.status(200).json({ message: 'Password has been reset successfully' });
+  } catch (error) {
+    console.error('Error in resetPassword:', error);
+    res.status(500).json({ message: 'Error processing your request' });
+  }
+};
