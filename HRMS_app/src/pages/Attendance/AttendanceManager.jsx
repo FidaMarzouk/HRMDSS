@@ -3,34 +3,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 
 import { Clock, Coffee, LogOut, CheckCircle } from 'lucide-react';
 import AttendanceReports from './AttendanceReports';
-import Swal from 'sweetalert2';
+import { showError, showSuccess } from '../../lib/alerts';
 import api, { errorMessage } from '../../lib/api';
 
-const alertTheme = {
-    background: '#1e262c',
-    customClass: { popup: 'rounded-lg shadow-xl', htmlContainer: 'text-[#94a3b8]' },
-};
+const showSuccessAlert = (title, text) => showSuccess(title, text);
 
-const showSuccessAlert = (title, text) => Swal.fire({
-    ...alertTheme,
-    icon: 'success',
-    title,
-    text,
-    color: '#2dd4bf',
-    confirmButtonColor: '#2dd4bf',
-    timer: 2000,
-    timerProgressBar: true,
-});
-
-const showErrorAlert = (title, error) => Swal.fire({
-    ...alertTheme,
-    icon: 'error',
-    title,
-    text: errorMessage(error, 'An unexpected error occurred'),
-    color: '#ef4444',
-    confirmButtonColor: '#ef4444',
-    confirmButtonText: 'Got it',
-});
+const showErrorAlert = (title, error) => showError(title, errorMessage(error, 'An unexpected error occurred'));
 
 const hasOpenBreak = (session) => Boolean(session?.breaks?.some((b) => !b.endTime));
 
@@ -110,26 +88,26 @@ const AttendanceManager = () => {
     const getStatusColor = () => {
         const status = getStatus();
         switch (status) {
-        case 'Checked In': return 'text-[#2dd4bf]';  
-        case 'On Break': return 'text-[#E1B382]'; 
-        case 'Ready for next session': return 'text-[#94a3b8]';
-        case 'Not Checked In': return 'text-[#B2A29E]'; 
-        default: return 'text-[#B2A29E]'; 
+        case 'Checked In': return 'text-teal';  
+        case 'On Break': return 'text-amber'; 
+        case 'Ready for next session': return 'text-ink-2';
+        case 'Not Checked In': return 'text-ink-2'; 
+        default: return 'text-ink-2'; 
         }
     };
 
     return (
-        <div className="p-6 space-y-6 bg-[#1a1f23]">
+        <div className="p-6 space-y-6 bg-panel">
             {/* Main Time Display Card*/}
-            <Card className="relative bg-[#1e262c] text-white overflow-hidden border-0 shadow-xl !bg-[#1e262c] !text-white">
+            <Card className="relative bg-panel text-ink overflow-hidden border-0">
                 <div className="absolute inset-0">
-                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(45,212,191,0.03)_1px,transparent_1px),linear-gradient(rgba(45,212,191,0.03)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-                    <div className="absolute -left-24 top-1/2 -translate-y-1/2 w-48 h-48 bg-[#2dd4bf]/10 rounded-full blur-3xl"></div>
+                    <div className="absolute inset-0 bg-blueprint"></div>
+                    <div className="absolute -left-24 top-1/2 -translate-y-1/2 w-48 h-48 bg-teal/10 rounded-full blur-3xl"></div>
                 </div>
                 <CardContent className="relative p-8">
                     <div className="flex items-center justify-between">
                         <div className="space-y-2">
-                            <h2 className="text-5xl font-bold tracking-tight font-mono text-white">
+                            <h2 className="text-5xl font-bold tracking-tight font-mono text-ink">
                                 {currentTime.toLocaleTimeString('en-US', {
                                     hour: '2-digit',
                                     minute: '2-digit',
@@ -137,7 +115,7 @@ const AttendanceManager = () => {
                                     hour12: true
                                 })}
                             </h2>
-                            <p className="text-lg text-[#94a3b8]">
+                            <p className="text-lg text-ink-2">
                                 {currentTime.toLocaleDateString('en-US', {
                                     weekday: 'long',
                                     year: 'numeric',
@@ -151,7 +129,7 @@ const AttendanceManager = () => {
                                 {getStatus()}
                             </div>
                             {attendance?.status === 'Late' && (
-                                <div className="text-red-400 text-sm mt-1">Late by {attendance.lateBy} minutes</div>
+                                <div className="text-red text-sm mt-1">Late by {attendance.lateBy} minutes</div>
                             )}
                         </div>
                     </div>
@@ -163,24 +141,24 @@ const AttendanceManager = () => {
                 <button
                     onClick={handlePunchIn}
                     disabled={loading || attendance}
-                    className={`relative group bg-[#1e262c] rounded-lg p-4 border-0 transition-all duration-300 overflow-hidden ${!attendance ? 'hover:bg-[#2dd4bf]/10' : 'opacity-50 cursor-not-allowed'}`}
+                    className={`relative group bg-panel rounded-lg p-4 border-0 transition-all duration-300 overflow-hidden ${!attendance ? 'hover:bg-teal/10' : 'opacity-50 cursor-not-allowed'}`}
                 >
-                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(45,212,191,0.03)_1px,transparent_1px),linear-gradient(rgba(45,212,191,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
+                    <div className="absolute inset-0 bg-blueprint"></div>
                     <div className="relative flex flex-col items-center space-y-2">
-                        <Clock className="h-8 w-8 text-[#2dd4bf]" />
-                        <span className="font-semibold text-white">Punch In</span>
+                        <Clock className="h-8 w-8 text-teal" />
+                        <span className="font-semibold text-ink">Punch In</span>
                     </div>
                 </button>
 
                 <button
                     onClick={handleBreak}
                     disabled={loading || !attendance || attendance?.checkOut}
-                    className={`relative group bg-[#1e262c] rounded-lg p-4 border-0 transition-all duration-300 overflow-hidden ${attendance && !attendance.checkOut ? 'hover:bg-[#2dd4bf]/10' : 'opacity-50 cursor-not-allowed'}`}
+                    className={`relative group bg-panel rounded-lg p-4 border-0 transition-all duration-300 overflow-hidden ${attendance && !attendance.checkOut ? 'hover:bg-teal/10' : 'opacity-50 cursor-not-allowed'}`}
                 >
-                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(45,212,191,0.03)_1px,transparent_1px),linear-gradient(rgba(45,212,191,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
+                    <div className="absolute inset-0 bg-blueprint"></div>
                     <div className="relative flex flex-col items-center space-y-2">
-                        <Coffee className="h-8 w-8 text-[#2dd4bf]" />
-                        <span className="font-semibold text-white">
+                        <Coffee className="h-8 w-8 text-teal" />
+                        <span className="font-semibold text-ink">
                             {isOnBreak ? 'End Break' : 'Start Break'}
                         </span>
                     </div>
@@ -189,20 +167,20 @@ const AttendanceManager = () => {
                 <button
                     onClick={handlePunchOut}
                     disabled={loading || !attendance || attendance?.checkOut || isOnBreak}
-                    className={`relative group bg-[#1e262c] rounded-lg p-4 border-0 transition-all duration-300 overflow-hidden ${attendance && !attendance.checkOut && !isOnBreak ? 'hover:bg-[#2dd4bf]/10' : 'opacity-50 cursor-not-allowed'}`}
+                    className={`relative group bg-panel rounded-lg p-4 border-0 transition-all duration-300 overflow-hidden ${attendance && !attendance.checkOut && !isOnBreak ? 'hover:bg-teal/10' : 'opacity-50 cursor-not-allowed'}`}
                 >
-                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(45,212,191,0.03)_1px,transparent_1px),linear-gradient(rgba(45,212,191,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
+                    <div className="absolute inset-0 bg-blueprint"></div>
                     <div className="relative flex flex-col items-center space-y-2">
-                        <LogOut className="h-8 w-8 text-[#2dd4bf]" />
-                        <span className="font-semibold text-white">Punch Out</span>
+                        <LogOut className="h-8 w-8 text-teal" />
+                        <span className="font-semibold text-ink">Punch Out</span>
                     </div>
                 </button>
             </div>
 
             {/* Today&apos;s Activity Timeline */}
-            <Card className="bg-[#1e262c] border-0 !bg-[#1e262c]">
+            <Card className="bg-panel border-0">
                 <CardHeader>
-                    <CardTitle className="text-[#2dd4bf] text-xl">Today&apos;s Activity Timeline</CardTitle>
+                    <CardTitle className="text-teal text-xl">Today&apos;s Activity Timeline</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                     {allSessions && allSessions.length > 0 ? (
@@ -210,42 +188,42 @@ const AttendanceManager = () => {
                             {allSessions.map((session, sessionIndex) => (
                                 <div key={sessionIndex} className="mb-8">
                                     <div className="mb-2">
-                                        <h3 className="font-semibold text-[#2dd4bf]">Session {session.sessionNumber}</h3>
+                                        <h3 className="font-semibold text-teal">Session {session.sessionNumber}</h3>
                                     </div>
                                     
-                                    <div className="relative pl-6 before:absolute before:left-2 before:top-2 before:w-2 before:h-2 before:bg-[#2dd4bf] before:rounded-full before:shadow-[0_0_8px_rgba(45,212,191,0.5)] after:absolute after:left-2.5 after:top-4 after:w-0.5 after:h-full after:bg-[#2dd4bf]/10">
+                                    <div className="relative pl-6 before:absolute before:left-2 before:top-2 before:w-2 before:h-2 before:bg-teal before:rounded-full after:absolute after:left-2.5 after:top-4 after:w-0.5 after:h-full after:bg-teal/10">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <h3 className="font-semibold text-[#2dd4bf]">Punch In</h3>
-                                                <p className="text-sm text-[#94a3b8]">{formatTime(session.checkIn)}</p>
+                                                <h3 className="font-semibold text-teal">Punch In</h3>
+                                                <p className="text-sm text-ink-2">{formatTime(session.checkIn)}</p>
                                             </div>
-                                            <CheckCircle className="h-5 w-5 text-[#2dd4bf]" />
+                                            <CheckCircle className="h-5 w-5 text-teal" />
                                         </div>
                                     </div>
 
                                     {session.breaks?.map((break_, index) => (
-                                        <div key={index} className="relative pl-6 before:absolute before:left-2 before:top-2 before:w-2 before:h-2 before:bg-[#2dd4bf] before:rounded-full before:shadow-[0_0_8px_rgba(45,212,191,0.5)] after:absolute after:left-2.5 after:top-4 after:w-0.5 after:h-full after:bg-[#2dd4bf]/10">
+                                        <div key={index} className="relative pl-6 before:absolute before:left-2 before:top-2 before:w-2 before:h-2 before:bg-teal before:rounded-full after:absolute after:left-2.5 after:top-4 after:w-0.5 after:h-full after:bg-teal/10">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <h3 className="font-semibold text-[#2dd4bf]">Break {index + 1}</h3>
-                                                    <p className="text-sm text-[#94a3b8]">
+                                                    <h3 className="font-semibold text-teal">Break {index + 1}</h3>
+                                                    <p className="text-sm text-ink-2">
                                                         {formatTime(break_.startTime)} - {break_.endTime ? formatTime(break_.endTime) : 'Ongoing'}
                                                         {break_.duration && ` (${break_.duration} min)`}
                                                     </p>
                                                 </div>
-                                                <Coffee className="h-5 w-5 text-[#2dd4bf]" />
+                                                <Coffee className="h-5 w-5 text-teal" />
                                             </div>
                                         </div>
                                     ))}
 
                                     {session.checkOut && (
-                                        <div className="relative pl-6 before:absolute before:left-2 before:top-2 before:w-2 before:h-2 before:bg-[#2dd4bf] before:rounded-full before:shadow-[0_0_8px_rgba(45,212,191,0.5)]">
+                                        <div className="relative pl-6 before:absolute before:left-2 before:top-2 before:w-2 before:h-2 before:bg-teal before:rounded-full">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <h3 className="font-semibold text-[#2dd4bf]">Punch Out</h3>
-                                                    <p className="text-sm text-[#94a3b8]">{formatTime(session.checkOut)}</p>
+                                                    <h3 className="font-semibold text-teal">Punch Out</h3>
+                                                    <p className="text-sm text-ink-2">{formatTime(session.checkOut)}</p>
                                                 </div>
-                                                <LogOut className="h-5 w-5 text-[#2dd4bf]" />
+                                                <LogOut className="h-5 w-5 text-teal" />
                                             </div>
                                         </div>
                                     )}
@@ -253,7 +231,7 @@ const AttendanceManager = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center text-[#94a3b8]">No activity recorded today</div>
+                        <div className="text-center text-ink-2">No activity recorded today</div>
                     )}
                 </CardContent>
             </Card>

@@ -4,24 +4,24 @@ import { ROLE_LABELS, formatDate } from "./employeeUtils";
 
 const Section = ({ title, children }) => (
   <section>
-    <h3 className="text-lg font-semibold mb-2 text-[#33adb4]">{title}</h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-[#333] rounded-lg bg-[#1a1a1a]">{children}</div>
+    <h3 className="text-lg font-semibold mb-2 text-teal">{title}</h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-line rounded-lg bg-panel">{children}</div>
   </section>
 );
 
 const Item = ({ label, children }) => (
   <div>
-    <p className="text-sm font-semibold text-gray-400">{label}</p>
-    <p className="border border-[#444] rounded-md p-2 bg-[#2a2a2a] text-gray-300 min-h-[2.5rem] break-words">{children ?? "—"}</p>
+    <p className="text-sm font-semibold text-ink-2">{label}</p>
+    <p className="border border-line-2 rounded-md p-2 bg-raise text-ink min-h-[2.5rem] break-words">{children ?? "—"}</p>
   </div>
 );
 
 const ModalShell = ({ title, open, onClose, children }) => (
   <AlertDialog open={open} onOpenChange={(value) => !value && onClose()}>
-    <AlertDialogContent className="!max-w-[640px] max-h-[85vh] overflow-y-auto p-0 !bg-[#222] border !border-[#333] !text-white">
-      <AlertDialogHeader className="flex flex-row items-center justify-between px-6 py-4 !bg-[#2d9d95]">
-        <AlertDialogTitle className="text-2xl font-bold text-white">{title}</AlertDialogTitle>
-        <button type="button" aria-label="Close" onClick={onClose} className="text-white hover:text-gray-200 text-2xl font-bold">×</button>
+    <AlertDialogContent className="!max-w-[640px] max-h-[85vh] overflow-y-auto p-0">
+      <AlertDialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b border-line">
+        <AlertDialogTitle className="text-2xl font-bold text-ink">{title}</AlertDialogTitle>
+        <button type="button" aria-label="Close" onClick={onClose} className="text-ink hover:text-ink text-2xl font-bold">×</button>
       </AlertDialogHeader>
       <div className="grid grid-cols-1 gap-4 p-6">{children}</div>
     </AlertDialogContent>
@@ -34,7 +34,7 @@ export const EmployeeDetailsModal = ({ employee, onClose, showSalary = false }) 
     {employee && (
       <>
         <div className="flex justify-center">
-          <img src={uploadUrl(employee.profilePicture)} alt="" className="w-32 h-32 rounded-full border-4 border-[#333] shadow-md object-cover" />
+          <img src={uploadUrl(employee.profilePicture)} alt="" className="w-32 h-32 rounded-full border-4 border-line shadow-md object-cover" />
         </div>
         <Section title="Basic information">
           <Item label="Name">{employee.firstName} {employee.lastName}</Item>
@@ -54,14 +54,14 @@ export const EmployeeDetailsModal = ({ employee, onClose, showSalary = false }) 
           <Item label="Days remaining">{employee.remainingLeaveDays}</Item>
         </Section>
         <section>
-          <h3 className="text-lg font-semibold mb-2 text-[#33adb4]">Skills</h3>
-          <div className="flex flex-wrap gap-2 p-4 border border-[#333] rounded-lg bg-[#1a1a1a]">
+          <h3 className="text-lg font-semibold mb-2 text-teal">Skills</h3>
+          <div className="flex flex-wrap gap-2 p-4 border border-line rounded-lg bg-panel">
             {employee.skills?.length ? (
               employee.skills.map((skill) => (
-                <span key={skill} className="px-3 py-1 bg-[#2a2a2a] rounded-full text-sm border border-[#444] text-gray-300">{skill}</span>
+                <span key={skill} className="px-3 py-1 bg-raise rounded-full text-sm border border-line-2 text-ink">{skill}</span>
               ))
             ) : (
-              <span className="text-gray-400">No skills listed</span>
+              <span className="text-ink-2">No skills listed</span>
             )}
           </div>
         </section>
@@ -83,30 +83,30 @@ export const DepartmentDetailsModal = ({ department, onClose }) => (
           <Item label="Manager email">{department.managerId?.email}</Item>
         </Section>
         <section>
-          <h3 className="text-lg font-semibold mb-2 text-[#33adb4]">Members</h3>
+          <h3 className="text-lg font-semibold mb-2 text-teal">Members</h3>
           {department.employees?.length ? (
-            <div className="overflow-x-auto rounded-lg bg-[#1a1a1a] border border-[#333]">
+            <div className="overflow-x-auto rounded-lg bg-panel border border-line">
               <table className="table-auto w-full text-left">
-                <thead className="bg-[#2a2a2a]">
+                <thead className="bg-raise">
                   <tr>
-                    <th className="py-2 px-3 text-xs text-[#33adb4] font-semibold">Name</th>
-                    <th className="py-2 px-3 text-xs text-[#33adb4] font-semibold">Email</th>
-                    <th className="py-2 px-3 text-xs text-[#33adb4] font-semibold">Position</th>
+                    <th className="py-2 px-3 text-xs text-teal font-semibold">Name</th>
+                    <th className="py-2 px-3 text-xs text-teal font-semibold">Email</th>
+                    <th className="py-2 px-3 text-xs text-teal font-semibold">Position</th>
                   </tr>
                 </thead>
                 <tbody>
                   {department.employees.map((emp) => (
-                    <tr key={emp._id} className="border-t border-[#333]">
-                      <td className="py-2 px-3 text-sm text-gray-300">{emp.firstName} {emp.lastName}</td>
-                      <td className="py-2 px-3 text-sm text-gray-300">{emp.email}</td>
-                      <td className="py-2 px-3 text-sm text-gray-300">{emp.position}</td>
+                    <tr key={emp._id} className="border-t border-line">
+                      <td className="py-2 px-3 text-sm text-ink">{emp.firstName} {emp.lastName}</td>
+                      <td className="py-2 px-3 text-sm text-ink">{emp.email}</td>
+                      <td className="py-2 px-3 text-sm text-ink">{emp.position}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="p-4 border border-[#333] rounded-lg bg-[#1a1a1a] text-gray-400">No employees in this department</p>
+            <p className="p-4 border border-line rounded-lg bg-panel text-ink-2">No employees in this department</p>
           )}
         </section>
       </>

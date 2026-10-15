@@ -1,31 +1,16 @@
-import Swal from "sweetalert2";
+import { confirm, toast } from "./feedback";
 
-// Dark-themed SweetAlert helpers shared by every page.
-const darkTheme = {
-  popup: "bg-[#1E1E1E] text-white border border-gray-700",
-  title: "text-white",
-  htmlContainer: "text-gray-300",
-  confirmButton: "bg-[#3baca5] hover:bg-[#2a7d78] text-white",
-  cancelButton: "bg-[#333] hover:bg-[#444] text-gray-200",
-};
+// Short helpers used across pages. Messages appear as toasts; confirmations as
+// an in-app dialog (see lib/feedback.js and components/ui/feedback-host.jsx).
 
-export const showSuccess = (title, text) =>
-  Swal.fire({ icon: "success", title, text, timer: 2000, showConfirmButton: false, customClass: darkTheme });
+export const showSuccess = (title, text) => toast({ tone: "success", title, text });
 
-export const showError = (title, text) =>
-  Swal.fire({ icon: "error", title, text, customClass: darkTheme });
+export const showError = (title, text) => toast({ tone: "error", title, text });
 
-export const showWarning = (title, text) =>
-  Swal.fire({ icon: "warning", title, text, customClass: darkTheme });
+export const showWarning = (title, text) => toast({ tone: "warning", title, text });
 
-export const confirmAction = async (title, text, confirmButtonText = "Confirm") => {
-  const result = await Swal.fire({
-    icon: "warning",
-    title,
-    text,
-    showCancelButton: true,
-    confirmButtonText,
-    customClass: darkTheme,
-  });
-  return result.isConfirmed;
-};
+export const showInfo = (title, text) => toast({ tone: "info", title, text });
+
+// Resolves to true when the user confirms. Pass tone: "danger" for destructive actions.
+export const confirmAction = (title, text, confirmLabel = "Confirm", { cancelLabel, tone = "danger" } = {}) =>
+  confirm({ title, text, confirmLabel, cancelLabel, tone });

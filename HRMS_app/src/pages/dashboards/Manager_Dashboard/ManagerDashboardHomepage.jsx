@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Typography } from "@material-tailwind/react";
+import { useChartColors } from "../../../theme/theme";
+import LeaveStatusBadge from "../../../features/leave/LeaveStatusBadge";
 import CustomDatePicker from '../../../components/ui/datePicker';
 import api, { errorMessage } from '../../../lib/api';
 import { formatDay } from '../../../lib/dates';
@@ -56,25 +57,7 @@ const ManagerDashboardHomePage = () => {
   });
   
   // Color palette
-  const colors = {
-    primary: "#23A49B",
-    secondary: "#2c8f8a",
-    accent: "#1a7772",
-    background: "#1e293b",
-    card: "rgba(30, 41, 59, 0.7)",
-    text: "#ffffff",
-    textSecondary: "#94a3b8",
-    border: "rgba(35, 164, 155, 0.3)",
-    chartColors: [
-      "#0bbfb3", // Deep teal 
-      "#4682B4", // Muted blue 
-      "#E17372", // Soft coral red 
-      "#0D5C63", // Dark cyan 
-      "#B2A29E", // Lighter teal 
-      "#D98872", // Warm terracotta
-      "#E1B382"  // Muted sandy beige 
-    ]
-  };
+  const colors = useChartColors();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -190,10 +173,10 @@ const ManagerDashboardHomePage = () => {
     const CustomTooltip = ({ active, payload, label }) => {
       if (active && payload && payload.length) {
         return (
-          <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 shadow-lg">
-            <p className="text-gray-300">{`${label}`}</p>
+          <div className="bg-raise p-3 rounded-lg border border-line shadow-lg">
+            <p className="text-ink">{`${label}`}</p>
             {payload.map((entry, index) => (
-              <p key={`item-${index}`} style={{ color: entry.color || "#23A49B" }}>
+              <p key={`item-${index}`} style={{ color: entry.color || colors.primary }}>
                 {`${entry.name}: ${entry.value}`}
               </p>
             ))}
@@ -209,9 +192,9 @@ const ManagerDashboardHomePage = () => {
       const data = payload[0].payload;
       
       return (
-        <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 shadow-lg">
-          <p className="text-gray-300 font-medium">{data.skill}</p>
-          <p style={{ color: payload[0].color || "#23A49B" }}>
+        <div className="bg-raise p-3 rounded-lg border border-line shadow-lg">
+          <p className="text-ink font-medium">{data.skill}</p>
+          <p style={{ color: payload[0].color || colors.primary }}>
             Count: {data.count}
           </p>
         </div>
@@ -232,10 +215,10 @@ const ManagerDashboardHomePage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-ground flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-t-[#23A49B] border-r-[#23A49B]/70 border-b-[#23A49B]/40 border-l-[#23A49B]/10 rounded-full animate-spin"></div>
-          <Typography className="text-white">Loading your dashboard data...</Typography>
+          <div className="w-16 h-16 border-4 border-t-teal border-r-teal/70 border-b-line border-l-line rounded-full animate-spin"></div>
+          <p className="text-ink">Loading your dashboard data...</p>
         </div>
       </div>
     );
@@ -243,14 +226,14 @@ const ManagerDashboardHomePage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-8 max-w-md w-full">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <Typography variant="h4" className="text-white text-center mb-2">Error Loading Dashboard</Typography>
-          <Typography className="text-gray-400 text-center mb-6">{error}</Typography>
+      <div className="min-h-screen bg-ground flex items-center justify-center p-4">
+        <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-8 max-w-md w-full">
+          <AlertCircle className="w-16 h-16 text-red mx-auto mb-4" />
+          <h4 className="text-xl font-semibold text-ink text-center mb-2">Error Loading Dashboard</h4>
+          <p className="text-ink-2 text-center mb-6">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="w-full bg-[#23A49B] text-white py-3 rounded-lg hover:shadow-[0_0_15px_rgba(35,164,155,0.5)] transition-shadow"
+            className="w-full bg-teal text-on-accent py-3 rounded-lg transition-shadow"
           >
             Retry
           </button>
@@ -261,29 +244,29 @@ const ManagerDashboardHomePage = () => {
 
   if (!dashboardData) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-ground flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-t-[#23A49B] border-r-[#23A49B]/70 border-b-[#23A49B]/40 border-l-[#23A49B]/10 rounded-full animate-spin"></div>
-          <Typography className="text-white">Loading dashboard data...</Typography>
+          <div className="w-16 h-16 border-4 border-t-teal border-r-teal/70 border-b-line border-l-line rounded-full animate-spin"></div>
+          <p className="text-ink">Loading dashboard data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 relative">
+    <div className="min-h-screen bg-ground relative">
       {/* Dashboard Layout */}
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
           <div className="mb-4 md:mb-0">
-            <Typography variant="h2" className="text-white text-2xl md:text-3xl font-bold flex items-center">
-              <Building className="w-8 h-8 mr-3 text-[#23A49B]" /> 
+            <h2 className="text-ink text-2xl md:text-3xl font-bold flex items-center">
+              <Building className="w-8 h-8 mr-3 text-teal" /> 
               {dashboardData.managerData?.name || 'Manager'} Dashboard
-            </Typography>
-            <Typography className="text-gray-400 flex items-center mt-1">
+            </h2>
+            <p className="text-ink-2 flex items-center mt-1">
               {dashboardData.managerData?.department} Department 
-            </Typography>
+            </p>
           </div>
           
           <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
@@ -291,12 +274,12 @@ const ManagerDashboardHomePage = () => {
             <CustomDatePicker
               selectedDate={dateRange.startDate}
               onChange={handleStartDateChange}
-              className="bg-gray-800 text-white"
+              className="bg-raise text-ink"
             />
             <CustomDatePicker
               selectedDate={dateRange.endDate}
               onChange={handleEndDateChange}
-              className="bg-gray-800 text-white"
+              className="bg-raise text-ink"
             />
         </div>
             
@@ -307,8 +290,8 @@ const ManagerDashboardHomePage = () => {
                   onClick={() => setActiveSection(section.id)}
                   className={`flex items-center px-4 py-2 rounded-lg text-sm transition-all ${
                     activeSection === section.id
-                      ? "bg-[#23A49B] text-white"
-                      : "bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-white"
+                      ? "bg-teal text-on-accent"
+                      : "bg-raise text-ink-2 hover:bg-sunk hover:text-ink"
                   }`}
                 >
                   <span className="mr-2">{section.icon}</span> {section.label}
@@ -322,91 +305,91 @@ const ManagerDashboardHomePage = () => {
         {activeSection === "overview" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Team Attendance Rate */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Team Attendance Rate</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Team Attendance Rate</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamAttendanceMetrics?.attendanceRate?.rate.toFixed(1) || 0}%
-                  </Typography>
+                  </h3>
                 </div>
-                <CheckCircle className="text-[#23A49B] w-8 h-8" />
+                <CheckCircle className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 {dashboardData.teamAttendanceMetrics?.attendanceRate?.actualAttendance || 0} of {dashboardData.teamAttendanceMetrics?.attendanceRate?.expectedAttendance || 0} expected attendances
-              </Typography>
+              </p>
             </div>
 
             {/* Pending Leave Requests */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Pending Leave Requests</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Pending Leave Requests</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.leaveManagementMetrics?.pendingLeaveRequests?.count || 0}
-                  </Typography>
+                  </h3>
                 </div>
-                <Clipboard className="text-[#23A49B] w-8 h-8" />
+                <Clipboard className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 {dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvalRate.toFixed(1) || 0}% approval rate
-              </Typography>
+              </p>
             </div>
 
             {/* Team Avg Production Hours */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Avg Production Hours</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Avg Production Hours</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamProductivity?.avgProductionHours?.overallAverage || 0}h
-                  </Typography>
+                  </h3>
                 </div>
-                <Timer className="text-[#23A49B] w-8 h-8" />
+                <Timer className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 Per team member daily average
-              </Typography>
+              </p>
             </div>
 
             {/* Unread Messages */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
             <div className="flex justify-between items-start mb-4">
                   <div>
-                    <Typography className="text-gray-400">Unread Messages</Typography>
-                    <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                    <p className="text-ink-2">Unread Messages</p>
+                    <h3 className="text-ink text-2xl font-bold mt-1">
                       {dashboardData.communicationMetrics?.unreadMessagesCount?.totalUnreadMessages || 0}
-                    </Typography>
+                    </h3>
                   </div>
-                  <MessagesSquare className="text-[#23A49B] w-8 h-8" />
+                  <MessagesSquare className="text-teal w-8 h-8" />
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                   {dashboardData.communicationMetrics?.unreadMessagesCount?.totalUnreadNotifications || 0} pending notifications
-                </Typography>
+                </p>
             </div>
 
             {/* Skills distribution */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-              <Typography className="text-white text-lg font-bold mb-4">Team Skills Distribution</Typography>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+              <p className="text-ink text-lg font-bold mb-4">Team Skills Distribution</p>
               
               <div className="flex flex-col md:flex-row gap-5">
                 {/* Left side: Stats & Skills Gaps */}
                 <div className="flex-1 flex flex-col">
                   {/* Average Skills card */}
-                  <div className="bg-background/80 rounded-xl p-4 border-l-4 border-primary mb-4">
-                    <Typography className="text-textSecondary mb-1 text-sm text-gray-400">AVERAGE SKILLS PER EMPLOYEE</Typography>
+                  <div className="bg-raise rounded-xl p-4 border-l-4 border-teal mb-4">
+                    <p className="mb-1 text-sm text-ink-2">AVERAGE SKILLS PER EMPLOYEE</p>
                     <div className="flex items-end gap-1">
-                      <Typography className="text-primary text-3xl font-bold">
+                      <p className="text-teal text-3xl font-bold">
                         {dashboardData.teamComposition?.skillsDistribution?.averageSkillsPerEmployee?.toFixed(1) || 0}
-                      </Typography>
-                      <Typography className="text-textSecondary text-sm mb-1">skills</Typography>
+                      </p>
+                      <p className="text-ink-2 text-sm mb-1">skills</p>
                     </div>
                   </div>
                   
                   {/* Skills Gaps */}
                   {dashboardData.teamComposition?.skillsDistribution?.skillsGaps?.length > 0 && (
-                    <div className="bg-background/80 rounded-xl p-4 flex-1">
-                      <Typography className="text-primary font-medium mb-3 text-gray-400">Skills Gaps (Single-employee skills)</Typography>
+                    <div className="bg-raise rounded-xl p-4 flex-1">
+                      <p className="font-medium mb-3 text-ink-2">Skills Gaps (Single-employee skills)</p>
                       <div className="flex flex-wrap gap-2">
                         {dashboardData.teamComposition?.skillsDistribution?.skillsGaps?.map((item, idx) => (
                           <div 
@@ -417,7 +400,7 @@ const ManagerDashboardHomePage = () => {
                               borderLeft: `3px solid ${colors.chartColors[idx % colors.chartColors.length]}` 
                             }}
                           >
-                            <span className="text-white">{item.skill}</span>
+                            <span className="text-ink">{item.skill}</span>
                             <span 
                               className="text-xs ml-2 px-2 py-0.5 rounded-full"
                               style={{ backgroundColor: `${colors.chartColors[idx % colors.chartColors.length]}40` }}
@@ -443,12 +426,12 @@ const ManagerDashboardHomePage = () => {
                             style={{ backgroundColor: colors.chartColors[idx % colors.chartColors.length] }}
                           ></div>
                           <div className="flex-1">
-                            <Typography 
-                              className="text-textSecondary text-sm break-words" 
+                            <p 
+                              className="text-ink-2 text-sm break-words" 
                               title={skill.skill}
                             >
                               {skill.skill} ({skill.count})
-                            </Typography>
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -485,8 +468,8 @@ const ManagerDashboardHomePage = () => {
             </div>
 
             {/* Team Tenure Distribution */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-              <Typography className="text-white text-lg font-bold mb-4">Team Tenure</Typography>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+              <p className="text-ink text-lg font-bold mb-4">Team Tenure</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:h-80 h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -500,17 +483,17 @@ const ManagerDashboardHomePage = () => {
                       ]}
                       margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#444" opacity={0.3} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} opacity={0.3} />
                       <XAxis 
                         dataKey="name" 
-                        tick={{ fill: '#94a3b8' }} 
-                        tickLine={{ stroke: '#444' }}
-                        axisLine={{ stroke: '#444' }}
+                        tick={{ fill: colors.axis }} 
+                        tickLine={{ stroke: colors.grid }}
+                        axisLine={{ stroke: colors.grid }}
                       />
                       <YAxis 
-                        tick={{ fill: '#94a3b8' }} 
-                        tickLine={{ stroke: '#444' }}
-                        axisLine={{ stroke: '#444' }}
+                        tick={{ fill: colors.axis }} 
+                        tickLine={{ stroke: colors.grid }}
+                        axisLine={{ stroke: colors.grid }}
                       />
                       <Tooltip content={<CustomTooltip />} />
                       <defs>
@@ -525,7 +508,7 @@ const ManagerDashboardHomePage = () => {
                         dataKey="value" 
                         name="Employees" 
                         radius={[8, 8, 0, 0]}
-                        label={{ position: 'top', fill: '#fff', fontSize: 12 }}
+                        label={{ position: 'top', fill: colors.text, fontSize: 12 }}
                       >
                         {[0, 1, 2, 3, 4].map((entry, index) => (
                           <Cell 
@@ -540,42 +523,42 @@ const ManagerDashboardHomePage = () => {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-col justify-between h-full">
-                  <div className="bg-gray-800/80 rounded-xl p-4 mb-4 border-l-4 border-[#23A49B]">
-                    <Typography className="text-gray-400">Average Tenure</Typography>
+                  <div className="bg-raise rounded-xl p-4 mb-4 border-l-4 border-teal">
+                    <p className="text-ink-2">Average Tenure</p>
                     <div className="flex items-end gap-2">
-                      <Typography variant="h3" className="text-white text-3xl font-bold mt-1">
+                      <h3 className="text-ink text-3xl font-bold mt-1">
                         {dashboardData.teamComposition?.departmentHiringTimeline?.averageTenureMonths || 0}
-                      </Typography>
-                      <Typography className="text-gray-400 mb-1">months</Typography>
+                      </h3>
+                      <p className="text-ink-2 mb-1">months</p>
                     </div>
                   </div>
-                  <div className="bg-gray-800/80 rounded-xl p-4 flex-grow">
+                  <div className="bg-raise rounded-xl p-4 flex-grow">
                     <div className="flex justify-between items-center mb-3">
-                      <Typography className="text-gray-400">Recent Hires</Typography>
-                      <div className="bg-[#23A49B]/20 px-2 py-1 rounded-full">
-                        <Typography className="text-[#23A49B] text-xs font-medium">
+                      <p className="text-ink-2">Recent Hires</p>
+                      <div className="bg-teal/10 px-2 py-1 rounded-full">
+                        <p className="text-teal text-xs font-medium">
                           {dashboardData.teamComposition?.departmentHiringTimeline?.recentHires?.length || 0} new
-                        </Typography>
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                       {dashboardData.teamComposition?.departmentHiringTimeline?.recentHires?.map((hire, idx) => (
                         <div 
                           key={idx} 
-                          className="flex items-center gap-3 pb-3 border-b border-gray-700 last:border-0 hover:bg-gray-700/30 p-2 rounded-lg transition-colors"
+                          className="flex items-center gap-3 pb-3 border-b border-line last:border-0 hover:bg-sunk p-2 rounded-lg transition-colors"
                         >
-                          <div className="bg-[#23A49B]/20 rounded-full p-2">
-                            <UserCircle className="text-[#23A49B] w-6 h-6" />
+                          <div className="bg-teal/10 rounded-full p-2">
+                            <UserCircle className="text-teal w-6 h-6" />
                           </div>
                           <div className="flex-1">
-                            <Typography className="text-white text-sm font-medium">{hire.name}</Typography>
-                            <Typography className="text-gray-400 text-xs">
+                            <p className="text-ink text-sm font-medium">{hire.name}</p>
+                            <p className="text-ink-2 text-xs">
                               {hire.position} • {formatDay(hire.hireDate)}
-                            </Typography>
+                            </p>
                           </div>
                           <div className="rounded-full px-2 py-1 text-xs" style={{
                             backgroundColor: getAgeColor(hire.hireDate),
-                            color: '#fff'
+                            color: colors.text
                           }}>
                             {getTimeSinceHire(hire.hireDate)}
                           </div>
@@ -595,72 +578,72 @@ const ManagerDashboardHomePage = () => {
         {activeSection === "attendance" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Attendance Rate */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Team Attendance Rate</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Team Attendance Rate</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamAttendanceMetrics?.attendanceRate?.rate.toFixed(1) || 0}%
-                  </Typography>
+                  </h3>
                 </div>
-                <CheckCircle className="text-[#23A49B] w-8 h-8" />
+                <CheckCircle className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 {dashboardData.teamAttendanceMetrics?.attendanceRate?.actualAttendance || 0} of {dashboardData.teamAttendanceMetrics?.attendanceRate?.expectedAttendance || 0} expected attendances
-              </Typography>
+              </p>
             </div>
 
             {/* Absenteeism Rate */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Absenteeism Rate</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Absenteeism Rate</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamAttendanceMetrics?.absenteeismRate?.rate.toFixed(1) || 0}%
-                  </Typography>
+                  </h3>
                 </div>
-                <AlertCircle className="text-[#E17372] w-8 h-8" />
+                <AlertCircle className="text-red w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 {dashboardData.teamAttendanceMetrics?.absenteeismRate?.absentDays || 0} absent days, {dashboardData.teamAttendanceMetrics?.absenteeismRate?.approvedLeaveDays || 0} approved leave days
-              </Typography>
+              </p>
             </div>
 
             {/* Average Check-In Time */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Avg Check-In Time</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Avg Check-In Time</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamAttendanceMetrics?.avgCheckTimes?.averageCheckIn || "N/A"}
-                  </Typography>
+                  </h3>
                 </div>
-                <Clock3 className="text-[#23A49B] w-8 h-8" />
+                <Clock3 className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 Check-out: {dashboardData.teamAttendanceMetrics?.avgCheckTimes?.averageCheckOut || "N/A"}
-              </Typography>
+              </p>
             </div>
 
             {/* Working Days */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Working Days</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Working Days</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamAttendanceMetrics?.absenteeismRate?.workDays || 0}
-                  </Typography>
+                  </h3>
                 </div>
-                <Calendar className="text-[#23A49B] w-8 h-8" />
+                <Calendar className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 In selected period
-              </Typography>
+              </p>
             </div>
 
             {/* Late Arrivals Trend Chart */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-              <Typography className="text-white text-lg font-bold mb-4">Late Arrivals Trend</Typography>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+              <p className="text-ink text-lg font-bold mb-4">Late Arrivals Trend</p>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
@@ -669,28 +652,28 @@ const ManagerDashboardHomePage = () => {
                   >
                     <defs>
                       <linearGradient id="lateArrivalsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#E17372" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#E17372" stopOpacity={0.1}/>
+                        <stop offset="5%" stopColor={colors.danger} stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor={colors.danger} stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
                     <XAxis 
                       dataKey="date" 
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tick={{ fill: colors.axis, fontSize: 12 }}
                     />
                     <YAxis 
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tick={{ fill: colors.axis, fontSize: 12 }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Area
                       type="monotone"
                       dataKey="count"
                       name="Late Arrivals"
-                      stroke="#E17372"
+                      stroke={colors.danger}
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#lateArrivalsGradient)"
@@ -706,72 +689,72 @@ const ManagerDashboardHomePage = () => {
         {activeSection === "leave" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Pending Requests */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Pending Requests</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Pending Requests</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.leaveManagementMetrics?.pendingLeaveRequests?.count || 0}
-                  </Typography>
+                  </h3>
                 </div>
-                <Clipboard className="text-[#23A49B] w-8 h-8" />
+                <Clipboard className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 Need your attention
-              </Typography>
+              </p>
             </div>
 
             {/* Approval Rate */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Approval Rate</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Approval Rate</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvalRate.toFixed(1) || 0}%
-                  </Typography>
+                  </h3>
                 </div>
-                <CheckCircle className="text-[#23A49B] w-8 h-8" />
+                <CheckCircle className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 {dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvedRequests || 0} approved, {dashboardData.leaveManagementMetrics?.leaveApprovalRate?.rejectedRequests || 0} rejected
-              </Typography>
+              </p>
             </div>
 
             {/* Total Requests */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Total Requests</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Total Requests</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.leaveManagementMetrics?.leaveApprovalRate?.totalRequests || 0}
-                  </Typography>
+                  </h3>
                 </div>
-                <Calendar className="text-[#23A49B] w-8 h-8" />
+                <Calendar className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 In selected period
-              </Typography>
+              </p>
             </div>
 
             {/* Leave Types */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <Typography className="text-gray-400">Main Leave Type</Typography>
-                  <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                  <p className="text-ink-2">Main Leave Type</p>
+                  <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.leaveManagementMetrics?.leaveDistribution?.[0]?.type || "N/A"}
-                  </Typography>
+                  </h3>
                 </div>
-                <FileCheck className="text-[#23A49B] w-8 h-8" />
+                <FileCheck className="text-teal w-8 h-8" />
               </div>
-              <Typography className="text-gray-400 text-sm">
+              <p className="text-ink-2 text-sm">
                 {dashboardData.leaveManagementMetrics?.leaveDistribution?.[0]?.days || 0} days total
-              </Typography>
+              </p>
             </div>
 
             {/* Leave Distribution Chart */}
-            <div className="col-span-1 md:col-span-2 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-              <Typography className="text-white text-lg font-bold mb-4">Leave Distribution by Type</Typography>
+            <div className="col-span-1 md:col-span-2 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+              <p className="text-ink text-lg font-bold mb-4">Leave Distribution by Type</p>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -781,7 +764,7 @@ const ManagerDashboardHomePage = () => {
                       cy="50%"
                       labelLine={false}
                       outerRadius={80}
-                      fill="#8884d8"
+                      fill={colors.chartColors[4]}
                       dataKey="days"
                       nameKey="type"
                       label={({ type, days }) => `${type}: ${days}`}
@@ -797,59 +780,59 @@ const ManagerDashboardHomePage = () => {
               </div>
             </div>
             {/* Leave Summary */}
-            <div className="col-span-1 md:col-span-2 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="col-span-1 md:col-span-2 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
             <div className="flex justify-between items-center mb-6">
-                <Typography className="text-white text-lg font-bold">Summary</Typography>
+                <p className="text-ink text-lg font-bold">Summary</p>
             </div>
             
             <div className="flex flex-col gap-6">
                 {/* Approval Rate Section */}
                 <div className="flex flex-col">
-                <Typography className="text-gray-400 mb-3">Approval Rate</Typography>
+                <p className="text-ink-2 mb-3">Approval Rate</p>
                 <div className="flex items-center mb-2">
-                    <div className="w-full bg-gray-700 rounded-full h-3 mr-2">
+                    <div className="w-full bg-sunk rounded-full h-3 mr-2">
                     <div
-                        className="bg-[#23A49B] h-3 rounded-full"
+                        className="bg-teal h-3 rounded-full"
                         style={{ width: `${dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvalRate || 0}%` }}
                     ></div>
                     </div>
-                    <span className="text-white ml-2">{(dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvalRate || 0).toFixed(1)}%</span>
+                    <span className="text-ink ml-2">{(dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvalRate || 0).toFixed(1)}%</span>
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                     Team average
-                </Typography>
+                </p>
                 </div>
                 
                 {/* Total Leave Days Section */}
                 <div className="flex flex-col mt-2">
-                <Typography className="text-gray-400 mb-3">Total Leave Days</Typography>
-                <Typography className="text-white text-2xl font-bold mb-2">
+                <p className="text-ink-2 mb-3">Total Leave Days</p>
+                <p className="text-ink text-2xl font-bold mb-2">
                     {dashboardData.leaveManagementMetrics?.leaveDistribution?.reduce((acc, curr) => acc + curr.days, 0) || 0}
-                </Typography>
-                <Typography className="text-gray-400 text-sm">
+                </p>
+                <p className="text-ink-2 text-sm">
                     In selected period
-                </Typography>
+                </p>
                 </div>
             </div>
             </div>
 
             {/* Department Leave Calendar */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-            <Typography className="text-white text-lg font-bold mb-4">Department Leave Calendar</Typography>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+            <p className="text-ink text-lg font-bold mb-4">Department Leave Calendar</p>
             
             <div className="mb-4">
                 <div className="flex flex-wrap gap-2 mb-4">
                 <div className="flex items-center">
-                    <span className="inline-block w-3 h-3 bg-[#0bbfb3] rounded-full mr-2"></span>
-                    <span className="text-gray-400 text-sm">Manager Approved</span>
+                    <span className="inline-block w-3 h-3 bg-teal rounded-full mr-2"></span>
+                    <span className="text-ink-2 text-sm">Manager Approved</span>
                 </div>
                 <div className="flex items-center">
-                    <span className="inline-block w-3 h-3 bg-[#4682B4] rounded-full mr-2"></span>
-                    <span className="text-gray-400 text-sm">Admin Approved</span>
+                    <span className="inline-block w-3 h-3 bg-blue rounded-full mr-2"></span>
+                    <span className="text-ink-2 text-sm">Admin Approved</span>
                 </div>
                 <div className="flex items-center">
-                    <span className="inline-block w-3 h-3 bg-[#E17372] rounded-full mr-2"></span>
-                    <span className="text-gray-400 text-sm">CEO Approved</span>
+                    <span className="inline-block w-3 h-3 bg-red rounded-full mr-2"></span>
+                    <span className="text-ink-2 text-sm">CEO Approved</span>
                 </div>
                 </div>
             </div>
@@ -859,18 +842,18 @@ const ManagerDashboardHomePage = () => {
                 {/* Calendar Header - Month and Navigation */}
                 <div className="flex justify-between items-center mb-4">
                     <button 
-                    className="p-2 rounded hover:bg-gray-700 text-gray-300"
+                    className="p-2 rounded hover:bg-sunk text-ink"
                     onClick={() => handleMonthChange(-1)}
                     >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
                     </button>
-                    <div className="text-white font-medium text-lg">
+                    <div className="text-ink font-medium text-lg">
                     {new Date(calendarMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </div>
                     <button 
-                    className="p-2 rounded hover:bg-gray-700 text-gray-300"
+                    className="p-2 rounded hover:bg-sunk text-ink"
                     onClick={() => handleMonthChange(1)}
                     >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -883,7 +866,7 @@ const ManagerDashboardHomePage = () => {
                 <div className="grid grid-cols-7 gap-2">
                     {/* Days of week header */}
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="text-center text-gray-400 font-medium pb-2">
+                    <div key={day} className="text-center text-ink-2 font-medium pb-2">
                         {day}
                     </div>
                     ))}
@@ -899,24 +882,24 @@ const ManagerDashboardHomePage = () => {
                         <div 
                         key={index} 
                         className={`
-                            min-h-24 border border-gray-700/30 rounded p-1
+                            min-h-24 border border-line rounded p-1
                             ${!day ? 'bg-transparent' : ''}
-                            ${isWeekend ? 'bg-gray-800/30' : 'bg-gray-800/10'}
+                            ${isWeekend ? 'bg-raise' : 'bg-raise'}
                             ${!isCurrentMonth ? 'opacity-40' : ''}
                         `}
                         >
                         {day && (
                             <>
-                            <div className="text-right text-sm text-gray-400 mb-1">
+                            <div className="text-right text-sm text-ink-2 mb-1">
                                 {day.getDate()}
                             </div>
                             <div className="overflow-y-auto max-h-20">
                                 {dayLeaves.map(leave => {
-                                let bgColor = "bg-[#0bbfb3]/20 border-[#0bbfb3]/40 text-[#0bbfb3]";
+                                let bgColor = "bg-teal/10 border-line text-teal";
                                 if (leave.status === "Admin Approved") {
-                                    bgColor = "bg-[#4682B4]/20 border-[#4682B4]/40 text-[#4682B4]";
+                                    bgColor = "bg-blue/10 border-blue/40 text-blue";
                                 } else if (leave.status === "CEO Approved") {
-                                    bgColor = "bg-[#E17372]/20 border-[#E17372]/40 text-[#E17372]";
+                                    bgColor = "bg-red/10 border-red/40 text-red";
                                 }
                                 
                                 return (
@@ -939,20 +922,16 @@ const ManagerDashboardHomePage = () => {
                 
                 {/* Simple Leave List Below Calendar */}
                 <div className="mt-6">
-                <Typography className="text-white text-sm font-semibold mb-2">Approved Leaves This Month</Typography>
+                <p className="text-ink text-sm font-semibold mb-2">Approved Leaves This Month</p>
                 <div className="overflow-y-auto max-h-40">
                     {dashboardData.leaveManagementMetrics?.departmentLeaveCalendar?.leavesList.map((leave) => {
-                    let statusColor = "text-[#0bbfb3]";
-                    if (leave.status === "Admin Approved") statusColor = "text-[#4682B4]";
-                    else if (leave.status === "CEO Approved") statusColor = "text-[#E17372]";
-                    
                     return (
-                        <div key={leave.id} className="py-2 border-b border-gray-700/30 text-sm">
+                        <div key={leave.id} className="py-2 border-b border-line text-sm">
                         <div className="flex justify-between">
-                            <span className="text-white font-medium">{leave.employee}</span>
-                            <span className={statusColor}>{leave.status}</span>
+                            <span className="text-ink font-medium">{leave.employee}</span>
+                            <LeaveStatusBadge status={leave.status} />
                         </div>
-                        <div className="text-gray-400">
+                        <div className="text-ink-2">
                             {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
                             {' • '}{leave.reason}
                         </div>
@@ -964,14 +943,14 @@ const ManagerDashboardHomePage = () => {
                 </div>
                 ) : (
                     <div className="text-center py-8">
-                    <Typography className="text-gray-400">No approved leaves in the selected period</Typography>
+                    <p className="text-ink-2">No approved leaves in the selected period</p>
                     </div>
                 )}
             </div>
 
             {/* Leave Statistics */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-            <Typography className="text-white text-lg font-bold mb-4">Leave Approval Statistics</Typography>
+            <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+            <p className="text-ink text-lg font-bold mb-4">Leave Approval Statistics</p>
             <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -979,31 +958,31 @@ const ManagerDashboardHomePage = () => {
                     {
                         name: "Approved",
                         value: dashboardData.leaveManagementMetrics?.leaveApprovalRate?.approvedRequests || 0,
-                        fill: "#0bbfb3"
+                        fill: colors.primary
                     },
                     {
                         name: "Rejected",
                         value: dashboardData.leaveManagementMetrics?.leaveApprovalRate?.rejectedRequests || 0,
-                        fill: "#E17372"
+                        fill: colors.danger
                     },
                     {
                         name: "Pending",
                         value: dashboardData.leaveManagementMetrics?.leaveApprovalRate?.pendingRequests || 0,
-                        fill: "#4682B4"
+                        fill: colors.chartColors[1]
                     }
                     ]}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+                    <XAxis dataKey="name" stroke={colors.axis} />
+                    <YAxis stroke={colors.axis} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="value" name="Requests" radius={[4, 4, 0, 0]}>
                     {[0, 1, 2].map((entry, index) => (
                         <Cell 
                         key={`cell-${index}`} 
                         fill={
-                            index === 0 ? "#0bbfb3" : 
-                            index === 1 ? "#E17372" : "#4682B4"
+                            index === 0 ? colors.primary : 
+                            index === 1 ? colors.danger : colors.chartColors[1]
                         } 
                         />
                     ))}
@@ -1014,23 +993,23 @@ const ManagerDashboardHomePage = () => {
             </div>
 
             {/* Monthly Leave Distribution */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-            <Typography className="text-white text-lg font-bold mb-4">Top Leave Types</Typography>
+            <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+            <p className="text-ink text-lg font-bold mb-4">Top Leave Types</p>
             <div className="overflow-y-auto h-72">
                 <table className="w-full table-auto">
                 <thead>
-                    <tr className="text-left border-b border-gray-700">
-                    <th className="pb-3 text-gray-400">Type</th>
-                    <th className="pb-3 text-gray-400">Days</th>
-                    <th className="pb-3 text-gray-400">Count</th>
+                    <tr className="text-left border-b border-line">
+                    <th className="pb-3 text-ink-2">Type</th>
+                    <th className="pb-3 text-ink-2">Days</th>
+                    <th className="pb-3 text-ink-2">Count</th>
                     </tr>
                 </thead>
                 <tbody>
                     {dashboardData.leaveManagementMetrics?.leaveDistribution?.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/20">
-                        <td className="py-3 text-white">{item.type}</td>
-                        <td className="py-3 text-white">{item.days}</td>
-                        <td className="py-3 text-white">{item.count}</td>
+                    <tr key={index} className="border-b border-line hover:bg-sunk">
+                        <td className="py-3 text-ink">{item.type}</td>
+                        <td className="py-3 text-ink">{item.days}</td>
+                        <td className="py-3 text-ink">{item.count}</td>
                     </tr>
                     ))}
                 </tbody>
@@ -1039,7 +1018,7 @@ const ManagerDashboardHomePage = () => {
                 {(!dashboardData.leaveManagementMetrics?.leaveDistribution || 
                 dashboardData.leaveManagementMetrics?.leaveDistribution.length === 0) && (
                 <div className="text-center py-8">
-                    <Typography className="text-gray-400">No leave data available</Typography>
+                    <p className="text-ink-2">No leave data available</p>
                 </div>
                 )}
             </div>
@@ -1053,39 +1032,39 @@ const ManagerDashboardHomePage = () => {
         {activeSection === "calendar" && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
             {/* Upcoming Events */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
             <div className="flex justify-between items-center mb-4">
-                <Typography className="text-white text-lg font-bold">Upcoming Events</Typography>
+                <p className="text-ink text-lg font-bold">Upcoming Events</p>
             </div>
             <div className="overflow-y-auto max-h-80">
                 <table className="min-w-full">
                 <thead>
-                    <tr className="border-b border-gray-700">
-                    <th className="py-3 text-left text-sm font-medium text-gray-400">Event</th>
-                    <th className="py-3 text-left text-sm font-medium text-gray-400">Date</th>
-                    <th className="py-3 text-left text-sm font-medium text-gray-400">Status</th>
+                    <tr className="border-b border-line">
+                    <th className="py-3 text-left text-sm font-medium text-ink-2">Event</th>
+                    <th className="py-3 text-left text-sm font-medium text-ink-2">Date</th>
+                    <th className="py-3 text-left text-sm font-medium text-ink-2">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {(dashboardData.calendarMetrics?.upcomingEvents || []).slice(0, 5).map((event, index) => (
-                    <tr key={index} className="border-b border-gray-700 hover:bg-gray-700/30">
+                    <tr key={index} className="border-b border-line hover:bg-sunk">
                         <td className="py-3">
                         <div className="flex items-center">
                             <div className={`w-2 h-2 rounded-full mr-2 ${
-                            event.type === 'meeting' ? 'bg-blue-500' : 
-                            event.type === 'event' ? 'bg-purple-500' : 'bg-yellow-500'
+                            event.type === 'meeting' ? 'bg-blue' : 
+                            event.type === 'event' ? 'bg-violet' : 'bg-amber'
                             }`}></div>
-                            <span className="text-white">{event.title}</span>
+                            <span className="text-ink">{event.title}</span>
                         </div>
                         </td>
-                        <td className="py-3 text-gray-300">
+                        <td className="py-3 text-ink">
                         {new Date(event.startDateTime).toLocaleDateString()}
                         </td>
                         <td className="py-3">
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                            event.status === 'scheduled' ? 'bg-green-900/50 text-green-400' :
-                            event.status === 'cancelled' ? 'bg-red-900/50 text-red-400' : 
-                            'bg-yellow-900/50 text-yellow-400'
+                            event.status === 'scheduled' ? 'bg-teal/10 text-teal' :
+                            event.status === 'cancelled' ? 'bg-red/10 text-red' : 
+                            'bg-amber/10 text-amber'
                         }`}>
                             {event.status}
                         </span>
@@ -1094,7 +1073,7 @@ const ManagerDashboardHomePage = () => {
                     ))}
                     {(dashboardData.calendarMetrics?.upcomingEvents || []).length === 0 && (
                     <tr>
-                        <td colSpan="3" className="py-3 text-center text-gray-400">No upcoming events</td>
+                        <td colSpan="3" className="py-3 text-center text-ink-2">No upcoming events</td>
                     </tr>
                     )}
                 </tbody>
@@ -1103,32 +1082,32 @@ const ManagerDashboardHomePage = () => {
             </div>
 
 {/* Event Participation Rate */}
-<div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-  <Typography className="text-white text-lg font-bold mb-4">Event Participation</Typography>
+<div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+  <p className="text-ink text-lg font-bold mb-4">Event Participation</p>
   
   {/* Overall Participation Rate Bar */}
   <div className="flex items-center mb-6">
-    <div className="w-full bg-gray-700 rounded-full h-3 mr-2">
+    <div className="w-full bg-sunk rounded-full h-3 mr-2">
       <div
-        className="bg-[#23A49B] h-3 rounded-full"
+        className="bg-teal h-3 rounded-full"
         style={{ width: `${dashboardData.calendarMetrics?.eventParticipationRates?.overallParticipationRate || 0}%` }}
       ></div>
     </div>
-    <span className="text-white ml-2">{dashboardData.calendarMetrics?.eventParticipationRates?.overallParticipationRate || 0}%</span>
+    <span className="text-ink ml-2">{dashboardData.calendarMetrics?.eventParticipationRates?.overallParticipationRate || 0}%</span>
   </div>
-  <Typography className="text-gray-400 text-sm mb-4">
+  <p className="text-ink-2 text-sm mb-4">
     Overall participation rate
-  </Typography>
+  </p>
   
   {/* Event Type Stats */}
   <div className="grid grid-cols-2 gap-4 mb-6">
     {Object.entries(dashboardData.calendarMetrics?.eventParticipationRates?.eventTypes || {}).map(([type, stats], index) => (
-      <div key={index} className="bg-gray-700/50 rounded-lg p-3">
+      <div key={index} className="bg-sunk rounded-lg p-3">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-300 capitalize">{type}</span>
-          <span className="text-white font-medium">{stats.participationRate.toFixed(1)}%</span>
+          <span className="text-ink capitalize">{type}</span>
+          <span className="text-ink font-medium">{stats.participationRate.toFixed(1)}%</span>
         </div>
-        <div className="flex justify-between text-xs text-gray-400">
+        <div className="flex justify-between text-xs text-ink-2">
           <span>Accepted: {stats.accepted}</span>
           <span>Total: {stats.total}</span>
         </div>
@@ -1139,46 +1118,46 @@ const ManagerDashboardHomePage = () => {
   
   {/* Weekly Trend Chart */}
 {/* Event Participation Rate */}
-<div className="col-span-1 md:col-span-2 lg:col-span-4 bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-  <Typography className="text-white text-lg font-bold mb-4">Weekly Participation Trend</Typography>
-    <div className="w-full h-64 bg-gray-700/30 rounded-lg p-4">
+<div className="col-span-1 md:col-span-2 lg:col-span-4 bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+  <p className="text-ink text-lg font-bold mb-4">Weekly Participation Trend</p>
+    <div className="w-full h-64 bg-sunk rounded-lg p-4">
       {dashboardData.calendarMetrics?.eventParticipationRates?.trendByWeek?.length > 0 ? (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={dashboardData.calendarMetrics.eventParticipationRates.trendByWeek}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis 
               dataKey="week" 
-              stroke="#888" 
-              tick={{ fill: '#888', fontSize: 10 }}
+              stroke={colors.axis} 
+              tick={{ fill: colors.axis, fontSize: 10 }}
               tickFormatter={(value) => value.split('-W')[1]} // Just show week number
             />
             <YAxis 
-              stroke="#888" 
-              tick={{ fill: '#888', fontSize: 10 }}
+              stroke={colors.axis} 
+              tick={{ fill: colors.axis, fontSize: 10 }}
               domain={[0, 100]}
               tickFormatter={(value) => `${value}%`}
             />
             <Tooltip 
-              contentStyle={{ backgroundColor: '#333', border: '1px solid #555' }}
-              labelStyle={{ color: '#fff' }}
+              contentStyle={{ backgroundColor: colors.background, border: '1px solid #555' }}
+              labelStyle={{ color: colors.text }}
               formatter={(value) => [`${value}%`, 'Participation Rate']}
               labelFormatter={(value) => `Week ${value.split('-W')[1]}`}
             />
             <Line 
               type="monotone" 
               dataKey="participationRate" 
-              stroke="#23A49B" 
+              stroke={colors.primary} 
               strokeWidth={2}
-              dot={{ r: 4, fill: '#23A49B' }}
-              activeDot={{ r: 6, fill: '#34D5CB' }}
+              dot={{ r: 4, fill: colors.primary }}
+              activeDot={{ r: 6, fill: colors.secondary }}
             />
           </LineChart>
         </ResponsiveContainer>
       ) : (
-        <div className="h-full flex items-center justify-center text-gray-400">
+        <div className="h-full flex items-center justify-center text-ink-2">
           No trend data available
         </div>
       )}
@@ -1187,8 +1166,8 @@ const ManagerDashboardHomePage = () => {
     {/* Legend */}
     <div className="flex justify-end items-center mt-2">
       <div className="flex items-center">
-        <div className="w-3 h-3 rounded-full bg-[#23A49B] mr-1"></div>
-        <span className="text-xs text-gray-400">Participation Rate</span>
+        <div className="w-3 h-3 rounded-full bg-teal mr-1"></div>
+        <span className="text-xs text-ink-2">Participation Rate</span>
       </div>
     </div>
   </div>
@@ -1203,58 +1182,58 @@ const ManagerDashboardHomePage = () => {
             {/* Top Cards Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Average Production Hours Card */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
                 <div className="flex justify-between items-start mb-4">
                 <div>
-                    <Typography className="text-gray-400">Avg Production Hours</Typography>
-                    <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                    <p className="text-ink-2">Avg Production Hours</p>
+                    <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamProductivity?.avgProductionHours?.overallAverage || 0}h
-                    </Typography>
+                    </h3>
                 </div>
-                <Timer className="text-[#23A49B] w-8 h-8" />
+                <Timer className="text-teal w-8 h-8" />
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                 Per team member daily average
-                </Typography>
+                </p>
             </div>
 
             {/* Overtime Trend Card */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
                 <div className="flex justify-between items-start mb-4">
                 <div>
-                    <Typography className="text-gray-400">Total Overtime</Typography>
-                    <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                    <p className="text-ink-2">Total Overtime</p>
+                    <h3 className="text-ink text-2xl font-bold mt-1">
                     {dashboardData.teamProductivity?.overtimeTrends?.reduce((sum, day) => sum + (day.totalHours || 0), 0).toFixed(1) || 0}h
-                    </Typography>
+                    </h3>
                 </div>
-                <Clock3 className="text-[#23A49B] w-8 h-8" />
+                <Clock3 className="text-teal w-8 h-8" />
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                 {dashboardData.teamProductivity?.overtimeTrends?.length || 0} days with overtime logged
-                </Typography>
+                </p>
             </div>
             </div>
 
             {/* Overtime Trends Chart */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-                <Typography className="text-white text-lg font-bold mb-4">Overtime Trends</Typography>
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+                <p className="text-ink text-lg font-bold mb-4">Overtime Trends</p>
                 <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                     data={dashboardData.teamProductivity?.overtimeTrends || []}
                     margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                     >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
                     <XAxis 
                         dataKey="date" 
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tick={{ fill: colors.axis, fontSize: 12 }}
                     />
                     <YAxis 
                         axisLine={false}
                         tickLine={false} 
-                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tick={{ fill: colors.axis, fontSize: 12 }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
@@ -1276,19 +1255,19 @@ const ManagerDashboardHomePage = () => {
             </div>
 
  {/* Team Breakdown Section */}
-<div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+<div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
   <div className="flex justify-between items-center mb-4">
-    <Typography className="text-white text-lg font-bold">Team Productivity Breakdown</Typography>
+    <p className="text-ink text-lg font-bold">Team Productivity Breakdown</p>
   </div>
   
   {dashboardData.isLoading ? (
     <div className="flex justify-center py-8">
-      <Loader2 className="w-8 h-8 text-[#23A49B] animate-spin" />
+      <Loader2 className="w-8 h-8 text-teal animate-spin" />
     </div>
   ) : (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left text-gray-300">
-        <thead className="text-xs uppercase text-gray-400 border-b border-gray-700">
+      <table className="w-full text-sm text-left text-ink">
+        <thead className="text-xs uppercase text-ink-2 border-b border-line">
           <tr>
             <th scope="col" className="py-3 px-4">Team Member</th>
             <th scope="col" className="py-3 px-4">Position</th>
@@ -1301,25 +1280,25 @@ const ManagerDashboardHomePage = () => {
         <tbody>
           {dashboardData.teamProductivity.teamMemberProductivity && dashboardData.teamProductivity.teamMemberProductivity.length > 0 ? (
             dashboardData.teamProductivity.teamMemberProductivity.map((member) => (
-              <tr key={member.id} className="border-b border-gray-700 hover:bg-gray-700/30 transition-colors">
-                <td className="py-3 px-4 font-medium text-gray-200">{member.name}</td>
-                <td className="py-3 px-4 text-gray-400">{member.position}</td>
+              <tr key={member.id} className="border-b border-line hover:bg-sunk transition-colors">
+                <td className="py-3 px-4 font-medium text-ink">{member.name}</td>
+                <td className="py-3 px-4 text-ink-2">{member.position}</td>
                 <td className="py-3 px-4">{member.avgHours}h</td>
                 <td className="py-3 px-4">
                   {member.overtime > 0 ? (
-                    <span className="text-amber-400">{member.overtime}h</span>
+                    <span className="text-amber">{member.overtime}h</span>
                   ) : (
                     <span>{member.overtime}h</span>
                   )}
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center">
-                    <div className="w-full bg-gray-700 rounded-full h-2 mr-2">
+                    <div className="w-full bg-sunk rounded-full h-2 mr-2">
                       <div 
                         className={`h-2 rounded-full ${
-                          member.productivityScore >= 90 ? 'bg-green-500' : 
-                          member.productivityScore >= 70 ? 'bg-[#23A49B]' : 
-                          member.productivityScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                          member.productivityScore >= 90 ? 'bg-teal' : 
+                          member.productivityScore >= 70 ? 'bg-teal' : 
+                          member.productivityScore >= 50 ? 'bg-amber' : 'bg-red'
                         }`} 
                         style={{ width: `${member.productivityScore}%` }}
                       ></div>
@@ -1330,13 +1309,13 @@ const ManagerDashboardHomePage = () => {
                 <td className="py-3 px-4">
                   {member.trend === 'up' ? (
                     <div className="flex items-center">
-                      <TrendingUp className="text-green-500 w-4 h-4 mr-1" />
-                      <span className="text-xs text-green-500">Improving</span>
+                      <TrendingUp className="text-teal w-4 h-4 mr-1" />
+                      <span className="text-xs text-teal">Improving</span>
                     </div>
                   ) : (
                     <div className="flex items-center">
-                      <TrendingDown className="text-red-500 w-4 h-4 mr-1" />
-                      <span className="text-xs text-red-500">Declining</span>
+                      <TrendingDown className="text-red w-4 h-4 mr-1" />
+                      <span className="text-xs text-red">Declining</span>
                     </div>
                   )}
                 </td>
@@ -1344,7 +1323,7 @@ const ManagerDashboardHomePage = () => {
             ))
           ) : (
             <tr>
-              <td colSpan="6" className="py-6 px-4 text-center text-gray-400">
+              <td colSpan="6" className="py-6 px-4 text-center text-ink-2">
                 No team productivity data available
               </td>
             </tr>
@@ -1363,57 +1342,57 @@ const ManagerDashboardHomePage = () => {
             {/* Top Cards Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Unread Messages Card */}
-              <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+              <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <Typography className="text-gray-400">Unread Messages</Typography>
-                    <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                    <p className="text-ink-2">Unread Messages</p>
+                    <h3 className="text-ink text-2xl font-bold mt-1">
                       {dashboardData.communicationMetrics?.unreadMessagesCount?.totalUnreadMessages || 0}
-                    </Typography>
+                    </h3>
                   </div>
-                  <MessagesSquare className="text-[#23A49B] w-8 h-8" />
+                  <MessagesSquare className="text-teal w-8 h-8" />
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                   {dashboardData.communicationMetrics?.unreadMessagesCount?.totalUnreadNotifications || 0} pending notifications
-                </Typography>
+                </p>
               </div>
 
               {/* Average Response Time Card */}
-              <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+              <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <Typography className="text-gray-400">Avg Response Time</Typography>
-                    <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                    <p className="text-ink-2">Avg Response Time</p>
+                    <h3 className="text-ink text-2xl font-bold mt-1">
                       {dashboardData.communicationMetrics?.responseTime?.averageResponseTimeMinutes || 0}m
-                    </Typography>
+                    </h3>
                   </div>
-                  <Clock3 className="text-[#23A49B] w-8 h-8" />
+                  <Clock3 className="text-teal w-8 h-8" />
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                   {dashboardData.communicationMetrics?.responseTime?.responsesAnalyzed || 0} messages analyzed
-                </Typography>
+                </p>
               </div>
 
               {/* Team Participation Card */}
-              <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+              <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <Typography className="text-gray-400">Team Participation</Typography>
-                    <Typography variant="h3" className="text-white text-2xl font-bold mt-1">
+                    <p className="text-ink-2">Team Participation</p>
+                    <h3 className="text-ink text-2xl font-bold mt-1">
                       {dashboardData.communicationMetrics?.teamEngagement?.participationRate || 0}%
-                    </Typography>
+                    </h3>
                   </div>
-                  <MessageCircle className="text-[#23A49B] w-8 h-8" />
+                  <MessageCircle className="text-teal w-8 h-8" />
                 </div>
-                <Typography className="text-gray-400 text-sm">
+                <p className="text-ink-2 text-sm">
                   {dashboardData.communicationMetrics?.teamEngagement?.activeUsers || 0} active team members
-                </Typography>
+                </p>
               </div>
             </div>
 
             {/* Response Time Distribution Chart */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-              <Typography className="text-white text-lg font-bold mb-4">Response Time Distribution</Typography>
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+              <p className="text-ink text-lg font-bold mb-4">Response Time Distribution</p>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -1437,17 +1416,17 @@ const ManagerDashboardHomePage = () => {
                     ]}
                     margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
                     <XAxis 
                       dataKey="name" 
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tick={{ fill: colors.axis, fontSize: 12 }}
                     />
                     <YAxis 
                       axisLine={false}
                       tickLine={false} 
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      tick={{ fill: colors.axis, fontSize: 12 }}
                       domain={[0, 100]}
                       unit="%"
                     />
@@ -1465,8 +1444,8 @@ const ManagerDashboardHomePage = () => {
             </div>
 
               {/* Team Engagement Chart */}
-              <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
-                <Typography className="text-white text-lg font-bold mb-4">Daily Message Activity</Typography>
+              <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
+                <p className="text-ink text-lg font-bold mb-4">Daily Message Activity</p>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
@@ -1476,17 +1455,17 @@ const ManagerDashboardHomePage = () => {
                       }
                       margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
                       <XAxis 
                         dataKey="date" 
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tick={{ fill: colors.axis, fontSize: 12 }}
                       />
                       <YAxis 
                         axisLine={false}
                         tickLine={false} 
-                        tick={{ fill: '#94a3b8', fontSize: 12 }}
+                        tick={{ fill: colors.axis, fontSize: 12 }}
                       />
                       <Tooltip content={<CustomTooltip />} />
                       <Area 
@@ -1508,18 +1487,18 @@ const ManagerDashboardHomePage = () => {
               </div>
   
             {/* Most Active Users Table */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl border border-[#23A49B]/30 p-6">
+            <div className="bg-raise backdrop-blur-xl rounded-2xl border border-line p-6">
               <div className="flex justify-between items-center mb-4">
-                <Typography className="text-white text-lg font-bold">Most Active Team Members</Typography>
+                <p className="text-ink text-lg font-bold">Most Active Team Members</p>
               </div>
               {dashboardData.isLoading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="w-8 h-8 text-[#23A49B] animate-spin" />
+                  <Loader2 className="w-8 h-8 text-teal animate-spin" />
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left text-gray-300">
-                    <thead className="text-xs uppercase text-gray-400 border-b border-gray-700">
+                  <table className="w-full text-sm text-left text-ink">
+                    <thead className="text-xs uppercase text-ink-2 border-b border-line">
                       <tr>
                         <th scope="col" className="py-3 px-4">Team Member</th>
                         <th scope="col" className="py-3 px-4">Message Count</th>
@@ -1534,16 +1513,16 @@ const ManagerDashboardHomePage = () => {
                           const maxCount = Math.max(...dashboardData.communicationMetrics.teamEngagement.mostActiveUsers.map(u => u.messageCount));
                           const activityPercentage = maxCount > 0 ? (member.messageCount / maxCount) * 100 : 0;
                           return (
-                            <tr key={member.userId} className="border-b border-gray-700 hover:bg-gray-700/30 transition-colors">
-                              <td className="py-3 px-4 font-medium text-gray-200">
+                            <tr key={member.userId} className="border-b border-line hover:bg-sunk transition-colors">
+                              <td className="py-3 px-4 font-medium text-ink">
                                 {member.fullName || `${member.firstName} ${member.lastName}`.trim() || "Unknown User"}
                               </td>
                               <td className="py-3 px-4">{member.messageCount}</td>
                               <td className="py-3 px-4">
                                 <div className="flex items-center">
-                                  <div className="w-full bg-gray-700 rounded-full h-2 mr-2">
+                                  <div className="w-full bg-sunk rounded-full h-2 mr-2">
                                     <div
-                                      className="h-2 rounded-full bg-[#23A49B]"
+                                      className="h-2 rounded-full bg-teal"
                                       style={{ width: `${activityPercentage}%` }}
                                     ></div>
                                   </div>
@@ -1555,7 +1534,7 @@ const ManagerDashboardHomePage = () => {
                         })
                       ) : (
                         <tr>
-                          <td colSpan="3" className="py-6 px-4 text-center text-gray-400">
+                          <td colSpan="3" className="py-6 px-4 text-center text-ink-2">
                             No team activity data available
                           </td>
                         </tr>

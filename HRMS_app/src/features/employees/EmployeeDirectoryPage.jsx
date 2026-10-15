@@ -17,13 +17,13 @@ export const SearchBox = ({ value, onChange, placeholder }) => (
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       aria-label={placeholder}
-      className="w-full p-3 bg-[#2a2a2a] border border-[#444] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#33adb4] focus:border-transparent"
+      className="w-full p-3 bg-panel border border-edge rounded-lg text-ink focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
     />
   </div>
 );
 
 const ViewButton = ({ onClick }) => (
-  <button type="button" onClick={onClick} className="px-3 py-1 bg-[#31638a] text-white rounded text-xs flex items-center hover:bg-[#264e6e] transition-colors">
+  <button type="button" onClick={onClick} className="px-3 py-1 border border-edge text-ink rounded text-xs flex items-center hover:border-teal hover:bg-sunk transition-colors">
     <FaEye className="mr-1" /> View
   </button>
 );
@@ -79,19 +79,19 @@ const EmployeeDirectoryPage = () => {
     : ["name", "email", "phone", "position", "hireDate", "leave"];
 
   return (
-    <div className="p-3 bg-[#1a1a1a] flex flex-col rounded-xl border border-[#333333] shadow-lg">
+    <div className="p-3 bg-panel flex flex-col rounded-xl border border-line shadow-lg">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
         <div className="flex items-center">
-          <FaUserTie className="text-[#33adb4] text-2xl mr-2" />
-          <h1 className="text-[#33adb4] text-2xl font-semibold">{isCeo ? "Company Directory" : "My Team"}</h1>
+          <FaUserTie className="text-teal text-2xl mr-2" />
+          <h1 className="text-teal text-2xl font-semibold">{isCeo ? "Company Directory" : "My Team"}</h1>
         </div>
-        <button type="button" onClick={load} className="flex items-center gap-2 px-4 py-2 bg-[#1E1E1E] hover:bg-[#2A2A2A] rounded-lg border border-gray-700 text-gray-300 transition-colors">
+        <button type="button" onClick={load} className="flex items-center gap-2 px-4 py-2 bg-panel hover:bg-sunk rounded-lg border border-line text-ink transition-colors">
           <RefreshCw className="h-4 w-4" /> Refresh
         </button>
       </div>
 
       {isCeo && (
-        <div className="flex mb-4 border-b border-[#333]" role="tablist">
+        <div className="flex mb-4 border-b border-line" role="tablist">
           {[
             { key: "employees", label: "Employees", icon: FaUsers },
             { key: "departments", label: "Departments", icon: FaSitemap },
@@ -105,7 +105,7 @@ const EmployeeDirectoryPage = () => {
                 setTab(key);
                 setQuery("");
               }}
-              className={`flex items-center px-4 py-3 -mb-px border-b-2 ${tab === key ? "text-[#33adb4] border-[#33adb4]" : "text-gray-400 border-transparent hover:text-gray-300"}`}
+              className={`flex items-center px-4 py-3 -mb-px border-b-2 ${tab === key ? "text-teal border-teal" : "text-ink-2 border-transparent hover:text-ink"}`}
             >
               <Icon className="mr-2" /> {label}
             </button>
@@ -113,7 +113,7 @@ const EmployeeDirectoryPage = () => {
         </div>
       )}
 
-      {error && <div className="mb-3 p-3 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-3 p-3 rounded bg-red/10 border border-red/30 text-red text-sm">{error}</div>}
 
       <SearchBox value={query} onChange={setQuery} placeholder={tab === "employees" ? "Search employees…" : "Search departments…"} />
 

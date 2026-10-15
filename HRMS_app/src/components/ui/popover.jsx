@@ -25,7 +25,7 @@ export const PopoverTrigger = ({ children, asChild, open, onOpenChange }) => {
   if (asChild) {
     return React.cloneElement(children, {
       onClick: handleClick,
-      className: `${children.props.className || ''} ${open ? 'ring-2 ring-[#2dd4bf]/50' : ''}`,
+      className: `${children.props.className || ''} ${open ? 'ring-2 ring-teal/50' : ''}`,
       "aria-expanded": open
     });
   }
@@ -34,7 +34,7 @@ export const PopoverTrigger = ({ children, asChild, open, onOpenChange }) => {
     <button 
       onClick={handleClick} 
       aria-expanded={open}
-      className={`${open ? 'ring-2 ring-[#2dd4bf]/50' : ''}`}
+      className={`${open ? 'ring-2 ring-teal/50' : ''}`}
     >
       {children}
     </button>
@@ -152,8 +152,7 @@ if (open && ref.current && triggerRef.current) {
   return (
     <div 
       ref={ref}
-      className={`absolute z-50 rounded-lg shadow-xl border border-[#2dd4bf]/30 backdrop-blur-sm
-                  transform transition-all duration-200 ease-in-out
+      className={`absolute z-50 rounded-lg shadow-xl border border-line backdrop-blur-sm transform transition-all duration-200 ease-in-out
                   ${open ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
                   ${className || ''}`}
       {...props}

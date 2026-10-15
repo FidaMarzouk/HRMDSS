@@ -1,49 +1,49 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva } from "class-variance-authority"
-import { cn } from "../../lib/utils"
+import { forwardRef } from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva } from "class-variance-authority";
+import { cn } from "../../lib/utils";
 
+// Hierarchy by weight, not colour: one filled teal primary per view, outlined
+// secondary, text-only ghost. Destructive actions are soft red.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-input hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "underline-offset-4 hover:underline text-primary",
+        primary: "bg-teal text-on-accent font-semibold hover:bg-teal-hi",
+        secondary: "border border-edge bg-transparent text-ink hover:border-teal hover:bg-sunk",
+        ghost: "text-ink-2 hover:bg-sunk hover:text-ink",
+        danger: "border border-red/20 bg-red/10 text-red hover:bg-red/15",
+        link: "h-auto px-0 text-teal underline-offset-4 hover:underline",
+        // Names used before the Pulse redesign
+        default: "bg-teal text-on-accent font-semibold hover:bg-teal-hi",
+        outline: "border border-edge bg-transparent text-ink hover:border-teal hover:bg-sunk",
+        destructive: "border border-red/20 bg-red/10 text-red hover:bg-red/15",
       },
       size: {
-        default: "h-9 sm:h-10 px-3 sm:px-4 py-2",
-        sm: "h-8 sm:h-9 px-2 sm:px-3 rounded-md",
-        lg: "h-10 sm:h-11 px-6 sm:px-8 rounded-md",
-        icon: "h-9 w-9 sm:h-10 sm:w-10",
+        sm: "h-8 px-2.5 text-[13px]",
+        md: "h-10 px-3.5",
+        lg: "h-11 px-5 text-[15px]",
+        icon: "h-10 w-10",
+        "icon-sm": "h-8 w-8",
+        default: "h-10 px-3.5",
       },
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+    defaultVariants: { variant: "primary", size: "md" },
   }
-)
+);
 
-const Button = React.forwardRef(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Button.displayName = "Button"
+const Button = forwardRef(({ className, variant, size, asChild = false, type = "button", ...props }, ref) => {
+  const Comp = asChild ? Slot : "button";
+  return (
+    <Comp
+      ref={ref}
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...(asChild ? {} : { type })}
+      {...props}
+    />
+  );
+});
+Button.displayName = "Button";
 
-export { Button, buttonVariants }
+export { Button, buttonVariants };

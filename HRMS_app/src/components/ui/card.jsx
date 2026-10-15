@@ -1,44 +1,33 @@
-// src/components/ui/card.jsx
+import { cn } from "../../lib/utils";
 
-export function Card({ className = "", children, ...props }) {
+// Panels: 1px hairline, radius 12, no drop shadow. `raised` for nested surfaces.
+export function Card({ className, raised = false, children, ...props }) {
   return (
-    <div 
-      className={`rounded-lg border bg-white text-gray-950 shadow w-full mx-auto ${className}`}
-      {...props}
-    >
+    <div className={cn("min-w-0 rounded-xl border border-line text-ink", raised ? "bg-raise" : "bg-panel", className)} {...props}>
       {children}
     </div>
   );
 }
 
-export function CardHeader({ className = "", children, ...props }) {
+export function CardHeader({ className, children, ...props }) {
   return (
-    <div 
-      className={`flex flex-col space-y-1.5 p-4 sm:p-6 ${className}`}
-      {...props}
-    >
+    <div className={cn("flex flex-col gap-1 p-4 sm:p-5", className)} {...props}>
       {children}
     </div>
   );
 }
 
-export function CardTitle({ className = "", children, ...props }) {
+export function CardTitle({ className, as: Tag = "h3", children, ...props }) {
   return (
-    <h3 
-      className={`font-semibold leading-none tracking-tight text-2xl ${className}`}
-      {...props}
-    >
+    <Tag className={cn("text-base font-semibold leading-tight", className)} {...props}>
       {children}
-    </h3>
+    </Tag>
   );
 }
 
-export function CardContent({ className = "", children, ...props }) {
+export function CardContent({ className, children, ...props }) {
   return (
-    <div 
-      className={`p-4 sm:p-6 pt-0 ${className}`}
-      {...props}
-    >
+    <div className={cn("p-4 pt-0 sm:p-5 sm:pt-0", className)} {...props}>
       {children}
     </div>
   );

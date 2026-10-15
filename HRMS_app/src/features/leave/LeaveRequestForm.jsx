@@ -79,39 +79,39 @@ const LeaveRequestForm = ({ open, onClose, onCreated }) => {
 
   const dateField = (name, label) => (
     <div>
-      <label className="block text-sm font-medium text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-ink mb-1">{label}</label>
       <div className="custom-datepicker-container relative">
         <DatePicker
           selected={form[name] ? new Date(form[name]) : null}
           onChange={(date) => setField(name, date ? format(date, "yyyy-MM-dd") : "")}
           dateFormat="dd/MM/yyyy"
-          className={`w-full p-2 pl-9 bg-[#2a2a2a] border rounded-md text-white ${errors[name] ? "border-red-500" : "border-[#444]"}`}
+          className={`w-full p-2 pl-9 bg-raise border rounded-md text-ink ${errors[name] ? "border-red" : "border-line-2"}`}
         />
-        <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-[#33adb4]" />
+        <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-teal" />
       </div>
-      {errors[name] && <p className="text-red-500 text-sm mt-1">{errors[name]}</p>}
+      {errors[name] && <p className="text-red text-sm mt-1">{errors[name]}</p>}
     </div>
   );
 
   return (
     <AlertDialog open={open} onOpenChange={(value) => !value && onClose()}>
-      <AlertDialogContent className="max-w-[700px] max-h-[90vh] p-0 overflow-hidden !bg-[#222] border !border-[#333] !text-white">
-        <AlertDialogHeader className="px-6 py-4 !bg-[#33adb4]">
-          <AlertDialogTitle className="text-2xl font-bold text-white">Request Leave</AlertDialogTitle>
+      <AlertDialogContent className="max-w-[700px] max-h-[90vh] p-0 overflow-hidden">
+        <AlertDialogHeader className="px-6 py-4 border-b border-line">
+          <AlertDialogTitle className="text-2xl font-bold text-ink">Request Leave</AlertDialogTitle>
           <AlertDialogDescription className="sr-only">Choose the dates and type of leave to request.</AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-80px)]">
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-[#1a1a1a] p-3 rounded-md border border-[#333]">
-              <span className="text-xs text-gray-400 block">Remaining balance</span>
-              <span className="text-2xl font-semibold text-[#33adb4]">{remainingDays ?? "--"}</span>
-              <span className="text-xs text-gray-400"> working days</span>
+            <div className="bg-panel p-3 rounded-md border border-line">
+              <span className="text-xs text-ink-2 block">Remaining balance</span>
+              <span className="text-2xl font-semibold text-teal">{remainingDays ?? "--"}</span>
+              <span className="text-xs text-ink-2"> working days</span>
             </div>
-            <div className="bg-[#1a1a1a] p-3 rounded-md border border-[#333]">
-              <span className="text-xs text-gray-400 block">This request</span>
-              <span className="text-2xl font-semibold text-white">{requestedDays}</span>
-              <span className="text-xs text-gray-400"> working days (Mon–Fri)</span>
+            <div className="bg-panel p-3 rounded-md border border-line">
+              <span className="text-xs text-ink-2 block">This request</span>
+              <span className="text-2xl font-semibold text-ink">{requestedDays}</span>
+              <span className="text-xs text-ink-2"> working days (Mon–Fri)</span>
             </div>
           </div>
 
@@ -122,43 +122,43 @@ const LeaveRequestForm = ({ open, onClose, onCreated }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Leave type</label>
+              <label className="block text-sm font-medium text-ink mb-1">Leave type</label>
               <select
                 value={form.reason}
                 onChange={(e) => setField("reason", e.target.value)}
-                className={`w-full p-2 bg-[#2a2a2a] border rounded-md text-white ${errors.reason ? "border-red-500" : "border-[#444]"}`}
+                className={`w-full p-2 bg-raise border rounded-md text-ink ${errors.reason ? "border-red" : "border-line-2"}`}
               >
                 <option value="">Select a leave type</option>
                 {LEAVE_TYPES.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
-              {errors.reason && <p className="text-red-500 text-sm mt-1">{errors.reason}</p>}
+              {errors.reason && <p className="text-red text-sm mt-1">{errors.reason}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Will be reviewed by</label>
-              <div className="p-2 bg-[#2a2a2a] border border-[#444] rounded-md">
-                {approver === undefined && <span className="text-gray-500">Loading…</span>}
+              <label className="block text-sm font-medium text-ink mb-1">Will be reviewed by</label>
+              <div className="p-2 bg-raise border border-line-2 rounded-md">
+                {approver === undefined && <span className="text-ink-3">Loading…</span>}
                 {approver === null && (
-                  <span className="text-amber-400">No approver assigned. Please contact HR before requesting leave.</span>
+                  <span className="text-amber">No approver assigned. Please contact HR before requesting leave.</span>
                 )}
                 {approver && (
-                  <span className="text-white">
-                    {fullName(approver)} <span className="text-gray-400">({ROLE_NAMES[approver.role] || approver.role})</span>
+                  <span className="text-ink">
+                    {fullName(approver)} <span className="text-ink-2">({ROLE_NAMES[approver.role] || approver.role})</span>
                   </span>
                 )}
               </div>
             </div>
 
             <div className="flex justify-end space-x-3 pt-2">
-              <button type="button" onClick={onClose} className="px-4 py-2 bg-[#333] hover:bg-[#444] text-gray-300 rounded-lg transition-colors">
+              <button type="button" onClick={onClose} className="px-4 py-2 bg-sunk hover:bg-line text-ink rounded-lg transition-colors">
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting || approver === null}
-                className="px-4 py-2 bg-[#33adb4] hover:bg-[#2a8c92] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center"
+                className="px-4 py-2 bg-teal hover:bg-teal-hi disabled:opacity-50 disabled:cursor-not-allowed text-on-accent rounded-lg transition-colors flex items-center"
               >
                 <FaCheckCircle className="mr-2" />
                 {submitting ? "Submitting…" : "Submit request"}

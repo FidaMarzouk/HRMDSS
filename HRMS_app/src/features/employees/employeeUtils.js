@@ -7,14 +7,6 @@ export const ROLE_LABELS = {
   superAdmin: "CEO",
 };
 
-const ROLE_COLORS = {
-  admin: "#e6b23b",
-  manager: "#33adb4",
-  employee: "#31638a",
-};
-
-export const roleColor = (role) => ROLE_COLORS[role] || "#878285";
-
 export const formatDate = (date) => formatDay(date);
 
 // Case- and whitespace-insensitive "contains" match across several values.

@@ -11,7 +11,7 @@ import DepartmentFormModal from "./DepartmentFormModal";
 import { SearchBox } from "./EmployeeDirectoryPage";
 import { departmentSearchValues, employeeSearchValues, matchesQuery } from "./employeeUtils";
 
-const actionButton = "px-2 py-1 text-white rounded text-xs transition-colors";
+const actionButton = "px-2 py-1 text-ink rounded text-xs transition-colors";
 
 // HR administration of employees and departments.
 const AdminEmployeesPage = () => {
@@ -94,15 +94,15 @@ const AdminEmployeesPage = () => {
   const isEmployees = tab === "employees";
 
   return (
-    <div className="p-3 bg-[#1a1a1a] flex flex-col rounded-xl border border-[#333333] shadow-lg">
+    <div className="p-3 bg-panel flex flex-col rounded-xl border border-line shadow-lg">
       {successMessage && (
-        <div className="p-4 bg-[#23A49B] text-white rounded-md mb-4 border-l-4 border-[#33adb4] flex items-center" role="status">
+        <div className="p-4 bg-teal text-on-accent rounded-md mb-4 border-l-4 border-teal flex items-center" role="status">
           <FaRobot className="mr-2 text-xl" />
           {successMessage}
         </div>
       )}
 
-      <div className="flex mb-6 border-b border-[#333] text-lg font-medium" role="tablist">
+      <div className="flex mb-6 border-b border-line text-lg font-medium" role="tablist">
         {[
           { key: "employees", label: "Employees", icon: FaUsers },
           { key: "departments", label: "Departments", icon: FaSitemap },
@@ -116,7 +116,7 @@ const AdminEmployeesPage = () => {
               setTab(key);
               setQuery("");
             }}
-            className={`flex items-center px-4 py-3 -mb-px border-b-2 ${tab === key ? "text-[#33adb4] border-[#33adb4]" : "text-gray-400 border-transparent hover:text-gray-300"}`}
+            className={`flex items-center px-4 py-3 -mb-px border-b-2 ${tab === key ? "text-teal border-teal" : "text-ink-2 border-transparent hover:text-ink"}`}
           >
             <Icon className="mr-2" /> {label}
           </button>
@@ -124,7 +124,7 @@ const AdminEmployeesPage = () => {
       </div>
 
       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-        <h1 className="flex items-center text-[#33adb4] text-2xl font-semibold">
+        <h1 className="flex items-center text-teal text-2xl font-semibold">
           {isEmployees ? <FaRobot className="mr-2" /> : <FaSitemap className="mr-2" />}
           {isEmployees ? "Employee Management" : "Department Management"}
         </h1>
@@ -132,12 +132,12 @@ const AdminEmployeesPage = () => {
           <button
             type="button"
             onClick={() => (isEmployees ? setEmployeeForm({ open: true, employee: null }) : setDepartmentForm({ open: true, department: null }))}
-            className="px-4 py-2 bg-[#33adb4] text-white rounded flex items-center transition-all hover:bg-[#2a8c92] shadow-lg"
+            className="px-4 py-2 bg-teal text-on-accent rounded flex items-center transition-all hover:bg-teal-hi shadow-lg"
           >
             {isEmployees ? <FaUserPlus className="mr-2" /> : <FaSitemap className="mr-2" />}
             {isEmployees ? "Add Employee" : "Add Department"}
           </button>
-          <button type="button" onClick={load} className="flex items-center gap-2 px-4 py-2 bg-[#1E1E1E] hover:bg-[#2A2A2A] rounded-lg border border-gray-700 text-gray-300 transition-colors">
+          <button type="button" onClick={load} className="flex items-center gap-2 px-4 py-2 bg-panel hover:bg-sunk rounded-lg border border-line text-ink transition-colors">
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
@@ -153,8 +153,8 @@ const AdminEmployeesPage = () => {
             loading={loading}
             renderActions={(employee) => (
               <>
-                <button type="button" className={`${actionButton} bg-[#33adb4] hover:bg-[#2a8c92]`} onClick={() => setEmployeeForm({ open: true, employee })}>Edit</button>
-                <button type="button" className={`${actionButton} bg-[#b91c1c] hover:bg-[#991b1b]`} onClick={() => deleteEmployee(employee)}>Delete</button>
+                <button type="button" className={`${actionButton} bg-teal hover:bg-teal-hi`} onClick={() => setEmployeeForm({ open: true, employee })}>Edit</button>
+                <button type="button" className={`${actionButton} bg-red hover:bg-red/90`} onClick={() => deleteEmployee(employee)}>Delete</button>
               </>
             )}
           />
@@ -167,8 +167,8 @@ const AdminEmployeesPage = () => {
             loading={loading}
             renderActions={(department) => (
               <>
-                <button type="button" className={`${actionButton} bg-[#33adb4] hover:bg-[#2a8c92]`} onClick={() => setDepartmentForm({ open: true, department })}>Edit</button>
-                <button type="button" className={`${actionButton} bg-[#b91c1c] hover:bg-[#991b1b]`} onClick={() => deleteDepartment(department)}>Delete</button>
+                <button type="button" className={`${actionButton} bg-teal hover:bg-teal-hi`} onClick={() => setDepartmentForm({ open: true, department })}>Edit</button>
+                <button type="button" className={`${actionButton} bg-red hover:bg-red/90`} onClick={() => deleteDepartment(department)}>Delete</button>
               </>
             )}
           />
