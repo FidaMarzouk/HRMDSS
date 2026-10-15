@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api, { errorMessage, uploadUrl } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { formatDay, toDateInputValue } from "../lib/dates";
 import { Typography } from "@material-tailwind/react";
 import { 
   User, Mail, Phone, Briefcase, Building, Calendar, 
@@ -47,7 +48,7 @@ const ProfilePage = () => {
             email: userData.email || "",
             phone: userData.phone || "",
             position: userData.position || "",
-            birthdate: userData.birthdate ? new Date(userData.birthdate).toISOString().split('T')[0] : "",
+            birthdate: toDateInputValue(userData.birthdate),
             skills: userData.skills || [],
             profilePicture: userData.profilePicture || "",
             currentPassword: "",
@@ -498,7 +499,7 @@ const ProfilePage = () => {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[#23A49B]" />
                     <input
                       type="text"
-                      value={user?.hireDate ? new Date(user.hireDate).toLocaleDateString() : ""}
+                      value={user?.hireDate ? formatDay(user.hireDate) : ""}
                       className="w-full bg-gray-900/50 border border-[#23A49B]/30 rounded-lg pl-10 p-3 text-white focus:outline-none focus:border-[#23A49B] transition-colors"
                       disabled
                     />

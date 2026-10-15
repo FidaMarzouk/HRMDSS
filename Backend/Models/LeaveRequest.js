@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { LEAVE_TYPES, LEAVE_STATUSES } = require('../constants/leave');
+const { toCompanyDate } = require('../utils/time');
 
 const leaveRequestSchema = new mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -7,8 +8,9 @@ const leaveRequestSchema = new mongoose.Schema({
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdBy: { type: String, enum: ['Employee', 'Manager', 'Admin'] },
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
+  // Calendar days, stored as midnight in company time (see utils/time.js).
+  startDate: { type: Date, required: true, set: toCompanyDate },
+  endDate: { type: Date, required: true, set: toCompanyDate },
   reason: { type: String, enum: LEAVE_TYPES, required: true },
   status: { type: String, enum: LEAVE_STATUSES, default: 'Pending' },
 }, { timestamps: true });

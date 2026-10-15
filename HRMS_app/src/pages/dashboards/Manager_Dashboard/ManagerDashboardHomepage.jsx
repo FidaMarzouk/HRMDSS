@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Typography } from "@material-tailwind/react";
 import CustomDatePicker from '../../../components/ui/datePicker';
 import api, { errorMessage } from '../../../lib/api';
+import { formatDay } from '../../../lib/dates';
 import {
   BarChart,
   LineChart,
@@ -569,7 +570,7 @@ const ManagerDashboardHomePage = () => {
                           <div className="flex-1">
                             <Typography className="text-white text-sm font-medium">{hire.name}</Typography>
                             <Typography className="text-gray-400 text-xs">
-                              {hire.position} • {new Date(hire.hireDate).toLocaleDateString()}
+                              {hire.position} • {formatDay(hire.hireDate)}
                             </Typography>
                           </div>
                           <div className="rounded-full px-2 py-1 text-xs" style={{

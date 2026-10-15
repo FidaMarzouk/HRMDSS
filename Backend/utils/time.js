@@ -52,6 +52,20 @@ const countWorkingDays = (startDate, endDate) => {
 
 const minutesBetween = (a, b) => Math.floor((b - a) / (1000 * 60));
 
+// Date-only fields (hire date, birthdate, leave start/end) are stored as
+// midnight in company time. A "YYYY-MM-DD" string is read as that calendar day
+// in Tunis (not UTC, which is what `new Date('YYYY-MM-DD')` would do); any other
+// date or timestamp is reduced to the start of its company-time day.
+// null/undefined/'' pass through so optional fields stay empty.
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const toCompanyDate = (value) => {
+  if (value === null || value === undefined || value === '') return value;
+  const match = typeof value === 'string' && DATE_ONLY.exec(value.trim());
+  if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? date : startOfDay(date);
+};
+
 module.exports = {
   WORK_START,
   LATE_AFTER,
@@ -66,4 +80,5 @@ module.exports = {
   isWeekend,
   countWorkingDays,
   minutesBetween,
+  toCompanyDate,
 };
