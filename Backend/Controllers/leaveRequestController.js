@@ -27,9 +27,9 @@ const resolveApprover = async (user) => {
         ? User.findById(user.managerId).select('firstName lastName role')
         : null;
     case 'manager':
-      return User.findOne({ role: 'admin' }).select('firstName lastName role');
+      return User.findOne({ ...User.ACTIVE, role: 'admin' }).select('firstName lastName role');
     case 'admin':
-      return User.findOne({ role: 'superAdmin' }).select('firstName lastName role');
+      return User.findOne({ ...User.ACTIVE, role: 'superAdmin' }).select('firstName lastName role');
     default:
       return null;
   }
@@ -287,7 +287,7 @@ exports.getRequestContext = async (req, res) => {
       ? await Department.findById(employee.departmentId).select('name coverageLimit').lean()
       : null;
     const teamMembers = department
-      ? await User.find({ departmentId: department._id }).select('firstName lastName').lean()
+      ? await User.find({ ...User.ACTIVE, departmentId: department._id }).select('firstName lastName').lean()
       : [employee];
     const limit = rules.coverageLimitFor(department, teamMembers.length);
 

@@ -1,5 +1,6 @@
 // Manager Dashboard Controller
 const mongoose = require('mongoose');
+const { skillNames } = require('../utils/skills');
 const User = require('../Models/User');
 const Attendance = require('../Models/Attendance');
 const LeaveRequest = require('../Models/LeaveRequest');
@@ -53,7 +54,7 @@ exports.getManagerDashboardData = async (req, res) => {
     }
     
     // Get team data - employees under this manager
-    const teamData = await User.find({ managerId: managerId });
+    const teamData = await User.find({ ...User.ACTIVE, managerId: managerId });
     const teamIds = teamData.map(employee => employee._id);
     
     // Team attendance metrics
@@ -367,7 +368,7 @@ async function getLeaveApprovalRate(managerId, startDate, endDate) {
 
 async function getDepartmentLeaveCalendar(departmentId, startDate, endDate) {
     // Find all employees in the department
-    const employees = await User.find({ departmentId: departmentId });
+    const employees = await User.find({ ...User.ACTIVE, departmentId: departmentId });
     const employeeIds = employees.map(emp => emp._id);
     
     // Find all approved leaves in the date range
@@ -889,7 +890,7 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
   // Calculate team engagement metrics in chats
   async function getTeamEngagementInChats(teamIds, startDate, endDate) {
     // First, get user information for all team members
-    const teamMembers = await User.find({
+    const teamMembers = await User.find({ ...User.ACTIVE,
       _id: { $in: teamIds }
     }, 'firstName lastName');
     
@@ -1158,7 +1159,7 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
     async function getEmployeeSkillsDistribution(teamIds) {
       // Get all employees with their skills
       const employees = await User.find(
-        { _id: { $in: teamIds } },
+        { ...User.ACTIVE, _id: { $in: teamIds } },
         { skills: 1, firstName: 1, lastName: 1 }
       );
       
@@ -1167,7 +1168,7 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
       const employeesBySkill = {};
       
       employees.forEach(employee => {
-        employee.skills.forEach(skill => {
+        skillNames(employee.skills).forEach(skill => {
           // Initialize if not exists
           if (!skillsCount[skill]) {
             skillsCount[skill] = 0;
@@ -1207,7 +1208,7 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
       const skillCoverageByEmployee = employees.map(employee => ({
         id: employee._id,
         name: `${employee.firstName} ${employee.lastName}`,
-        skillsCount: employee.skills.length
+        skillsCount: skillNames(employee.skills).length
       })).sort((a, b) => b.skillsCount - a.skillsCount);
       
       return {
@@ -1216,7 +1217,7 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
         topSkills,
         skillCoverageByEmployee,
         averageSkillsPerEmployee: employees.length > 0 
-          ? employees.reduce((acc, emp) => acc + emp.skills.length, 0) / employees.length 
+          ? employees.reduce((acc, emp) => acc + skillNames(emp.skills).length, 0) / employees.length 
           : 0
       };
     }
@@ -1225,7 +1226,7 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
     async function getDepartmentHiringTimeline(teamIds) {
       // Get all team members with their hire dates
       const employees = await User.find(
-        { _id: { $in: teamIds } },
+        { ...User.ACTIVE, _id: { $in: teamIds } },
         { firstName: 1, lastName: 1, position: 1, hireDate: 1 }
       ).sort({ hireDate: 1 });
       

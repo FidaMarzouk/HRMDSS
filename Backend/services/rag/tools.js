@@ -219,7 +219,8 @@ const createTools = (userId) => {
         manager: user.managerId ? `${user.managerId.firstName} ${user.managerId.lastName} (${user.managerId.email})` : null,
         hireDate: fmtDate(user.hireDate),
         workEmail: user.email,
-        skills: user.skills,
+        // "SolidWorks (level 4/5, validated)" when a level is recorded
+        skills: (user.skills || []).map((s) => (typeof s === 'string' ? s : s.level ? `${s.name} (level ${s.level}/5${s.validatedBy ? ', validated' : ''})` : s.name)),
       };
     },
   };

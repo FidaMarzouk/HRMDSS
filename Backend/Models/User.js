@@ -1,5 +1,15 @@
 const mongoose = require('mongoose');
 const { toCompanyDate } = require('../utils/time');
+const { normalizeSkills } = require('../utils/skills');
+
+// A skill with an optional 1-5 level; validatedBy is the manager or HR person
+// who confirmed the level.
+const skillSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true, maxlength: 60 },
+  level: { type: Number, min: 1, max: 5 },
+  validatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  validatedAt: Date,
+}, { _id: false });
 
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
@@ -13,7 +23,8 @@ const userSchema = new mongoose.Schema({
   salary: { type: Number, required: true },
   leaveRequestAllowed: { type: Number},
   remainingLeaveDays: { type: Number },
-  skills: { type: [String], required: true },
+  // Plain names are accepted and converted (see utils/skills.js).
+  skills: { type: [skillSchema], default: [], set: normalizeSkills },
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ['admin', 'manager', 'employee','superAdmin'], default: 'employee' },
   profilePicture: { type: String, default: '' },
@@ -22,8 +33,29 @@ const userSchema = new mongoose.Schema({
   personalEmail: { type: String },
   // Single-use password reset / account setup token (stored hashed).
   passwordResetTokenHash: { type: String, select: false },
-  passwordResetExpires: { type: Date, select: false }
+  passwordResetExpires: { type: Date, select: false },
+
+  // Archived people keep their history but cannot sign in and are left out of
+  // lists, counts and scheduled jobs. Nothing is deleted.
+  status: { type: String, enum: ['active', 'archived'], default: 'active' },
+  archivedAt: Date,
+  archivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  archiveReason: { type: String, maxlength: 500 },
 }, { timestamps: true });
+
+userSchema.index({ status: 1 });
+
+// Documents written before skills had levels store plain strings; convert them
+// as they load so they are never cast into broken subdocuments (migration 002
+// converts the stored data).
+userSchema.pre('init', function normalizeLegacySkills(doc) {
+  if (Array.isArray(doc.skills) && doc.skills.some((s) => typeof s === 'string')) {
+    doc.skills = normalizeSkills(doc.skills);
+  }
+});
+
+// Filter for everyone who has not been archived (missing status = active).
+userSchema.statics.ACTIVE = Object.freeze({ status: { $ne: 'archived' } });
 
 // Middleware to check if the managerId points to a valid manager
 userSchema.pre('save', async function(next) {

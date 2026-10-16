@@ -26,7 +26,7 @@ export const employeeSearchValues = (e) => [
   e.role,
   e.position,
   e.departmentId?.name,
-  e.skills || [],
+  (e.skills || []).map((skill) => (typeof skill === "string" ? skill : skill?.name)),
 ];
 
 export const departmentSearchValues = (d) => [

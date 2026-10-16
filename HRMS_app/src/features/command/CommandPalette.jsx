@@ -105,7 +105,7 @@ export function CommandPalette({ open, onClose, onLogout }) {
         keywords: `${p.firstName} ${p.lastName} ${p.position || ""} ${p.department || ""} ${p.email || ""}`,
         searchMatch: true,
         run: () =>
-          navigate(hasPeoplePage ? `${pathFor("people")}?q=${encodeURIComponent(`${p.firstName} ${p.lastName}`)}` : `${pathFor("chat")}?with=${p.id}`),
+          navigate(hasPeoplePage ? `${pathFor("people")}?person=${p.id}` : `${pathFor("chat")}?with=${p.id}`),
       })
     );
 

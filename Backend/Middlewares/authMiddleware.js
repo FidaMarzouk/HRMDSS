@@ -1,4 +1,5 @@
 const verifyToken = require('../utils/jwtVerify');
+const accountStatus = require('../services/accountStatus');
 
 const authMiddleware = (req, res, next) => {
   // Prefer the httpOnly cookie, fall back to a Bearer header.
@@ -15,6 +16,11 @@ const authMiddleware = (req, res, next) => {
   if (!result.success) {
     const expired = result.error.name === 'TokenExpiredError';
     return res.status(401).json({ message: expired ? 'Session expired.' : 'Invalid token.' });
+  }
+
+  // Archiving ends a session at once, before the token would expire.
+  if (accountStatus.isArchived(result.user.id)) {
+    return res.status(401).json({ message: 'This account has been archived.' });
   }
 
   req.user = result.user;

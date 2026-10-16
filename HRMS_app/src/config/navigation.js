@@ -3,8 +3,7 @@ import { BarChart3, Bell, CalendarDays, Clipboard, Clock, Gauge, MessageCircle, 
 
 // Pages are loaded on first visit, so each role only downloads what it opens.
 const TodayPage = lazy(() => import("../features/today/TodayPage"));
-const AdminEmployeesPage = lazy(() => import("../features/employees/AdminEmployeesPage"));
-const EmployeeDirectoryPage = lazy(() => import("../features/employees/EmployeeDirectoryPage"));
+const PeoplePage = lazy(() => import("../features/people/PeoplePage"));
 const LeaveRequestsPage = lazy(() => import("../features/leave/LeaveRequestsPage"));
 const AttendanceManager = lazy(() => import("../pages/Attendance/AttendanceManager"));
 const AttendanceReports = lazy(() => import("../pages/Attendance/AttendanceReports"));
@@ -24,9 +23,8 @@ const ProfilePage = lazy(() => import("../pages/ProfilePage"));
 const PAGES = [
   // WORK
   { group: "WORK", key: "today", label: "Today", icon: Sun, component: TodayPage, count: "today", keywords: "home decisions queue floor" },
-  { group: "WORK", key: "people", label: "People", icon: Users, component: AdminEmployeesPage, roles: ["admin"], keywords: "employees departments staff directory" },
-  { group: "WORK", key: "people", label: "My team", icon: Users, component: EmployeeDirectoryPage, roles: ["manager"], keywords: "employees team directory" },
-  { group: "WORK", key: "people", label: "People", icon: Users, component: EmployeeDirectoryPage, roles: ["superAdmin"], keywords: "employees departments directory" },
+  { group: "WORK", key: "people", label: "People", icon: Users, component: PeoplePage, roles: ["admin", "superAdmin"], keywords: "employees departments staff directory archive" },
+  { group: "WORK", key: "people", label: "My team", icon: Users, component: PeoplePage, roles: ["manager"], keywords: "employees team directory" },
   { group: "WORK", key: "leave", label: "Leave", icon: Clipboard, component: LeaveRequestsPage, count: "leave", keywords: "leave requests time off vacation" },
   { group: "WORK", key: "time", label: "Time", icon: Clock, component: AttendanceManager, roles: ["admin", "manager", "employee"], keywords: "attendance punch in out break" },
   { group: "WORK", key: "time", label: "Time", icon: Clock, component: AttendanceReports, roles: ["superAdmin"], keywords: "attendance reports" },

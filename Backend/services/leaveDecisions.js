@@ -12,6 +12,10 @@ const { sendNotificationToUser, sendNotificationToRole, broadcast } = require('.
 const { FINAL_APPROVED, UNDO_WINDOW_MS } = require('../constants/leave');
 const { countWorkingDays, toCompanyDate, startOfDay } = require('../utils/time');
 const { idOf, canReviewLeave } = require('./policies');
+const audit = require('./audit');
+
+const auditLeave = (user, request, action, summary, note) =>
+  audit.record({ actor: user, action, entity: 'LeaveRequest', entityId: request._id, subject: request.employeeId, summary, reason: note });
 
 class DecisionError extends Error {
   constructor(status, message) {
@@ -157,6 +161,7 @@ const decide = async ({ request, user, action, note }) => {
   await request.save();
   await refreshBalanceIfFinal(request, request.status);
   scheduleFlush(request._id, request.decision.undoUntil);
+  await auditLeave(user, request, `leave.${action}`, `Leave ${formatRange(request.startDate, request.endDate)} ${action === 'approve' ? 'approved' : 'rejected'} (${request.status})`, cleanNote);
   return request;
 };
 
@@ -190,6 +195,7 @@ const undo = async ({ requestId, user }) => {
   clearTimeout(timers.get(String(requestId)));
   timers.delete(String(requestId));
   await refreshBalanceIfFinal(undone, decided);
+  await auditLeave(user, undone, 'leave.undo', `Decision on leave ${formatRange(undone.startDate, undone.endDate)} undone (back to ${undone.status})`);
   return undone;
 };
 
@@ -220,6 +226,7 @@ const counterPropose = async ({ request, user, startDate, endDate, note }) => {
   request.history.push({ action: 'counter_proposed', status: request.status, by: user.id, byRole: user.role, at: now, note: cleanNote, startDate: start, endDate: end });
   await request.save();
 
+  await auditLeave(user, request, 'leave.counter_propose', `Dates ${formatRange(start, end)} proposed instead of ${formatRange(request.startDate, request.endDate)}`, cleanNote);
   const reviewer = await User.findById(user.id).select('firstName lastName');
   await sendNotificationToUser(request.employeeId, {
     title: 'New dates proposed for your leave',

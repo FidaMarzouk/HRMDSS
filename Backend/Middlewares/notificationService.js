@@ -3,6 +3,7 @@ const { parseCookie } = require('cookie');
 const Notification = require('../Models/Notification');
 const User = require('../Models/User');
 const verifyToken = require('../utils/jwtVerify');
+const accountStatus = require('../services/accountStatus');
 let io;
 
 // The browser cannot read the httpOnly auth cookie, but it is sent with the
@@ -36,6 +37,10 @@ const initializeSocket = (server, origin) => {
     if (!result.success) {
       const expired = result.error.name === 'TokenExpiredError';
       return next(new Error(expired ? 'Token expired' : 'Authentication error: Invalid token'));
+    }
+
+    if (accountStatus.isArchived(result.user.id)) {
+      return next(new Error('Authentication error: Account archived'));
     }
 
     socket.user = result.user;
@@ -82,7 +87,7 @@ const sendNotificationToUser = async (userId, notification) => {
 // read/delete state is tracked individually.
 const sendNotificationToRole = async (role, notification) => {
   try {
-    const users = await User.find({ role }).select('_id').lean();
+    const users = await User.find({ role, ...User.ACTIVE }).select('_id').lean();
     if (users.length === 0) return [];
 
     const created = await Notification.insertMany(

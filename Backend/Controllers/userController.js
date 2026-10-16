@@ -5,6 +5,8 @@ const Department = require('../Models/Department');
 const leaveHelper = require('../Middlewares/leaveCalculationHelper');
 const emailService = require('../services/emailService');
 const { ACCOUNT_SETUP_TTL_MS, issuePasswordToken, passwordLink } = require('../utils/passwordTokens');
+const { mergeSkillNames } = require('../utils/skills');
+const audit = require('../services/audit');
 
 // Fields a manager may see about their team (no salary, personal email, birthdate...).
 const TEAM_SAFE_FIELDS = 'firstName lastName email phone position departmentId managerId hireDate skills role profilePicture leaveRequestAllowed remainingLeaveDays';
@@ -32,7 +34,8 @@ exports.updateProfile = async (req, res) => {
       if (req.body[field] !== undefined) updateData[field] = req.body[field];
     }
     if (updateData.skills !== undefined) {
-      updateData.skills = parseSkills(updateData.skills);
+      const current = await User.findById(userId).select('skills');
+      updateData.skills = mergeSkillNames(current?.skills, parseSkills(updateData.skills) || []);
     }
     if (req.file) {
       updateData.profilePicture = `/uploads/${req.file.filename}`;
@@ -154,8 +157,19 @@ exports.createUser = async (req, res) => {
       setupUrl: passwordLink(setupToken),
     }).catch((emailError) => console.error("Error sending welcome email:", emailError));
 
+    await audit.record({
+      actor: req.user,
+      action: 'user.create',
+      entity: 'User',
+      entityId: savedUser._id,
+      subject: savedUser._id,
+      summary: `${savedUser.firstName} ${savedUser.lastName} added as ${savedUser.position}`,
+      req,
+    });
+
     const result = savedUser.toObject();
     delete result.password;
+    delete result.salary;
     delete result.passwordResetTokenHash;
     delete result.passwordResetExpires;
     return res.status(201).json({ message: "User created successfully", user: result });
@@ -174,14 +188,17 @@ exports.getUsers = async (req, res) => {
     const userRole = req.user.role;
 
     if (userRole === 'admin' || userRole === 'superAdmin') {
-      const users = await User.find({ role: { $nin: ['admin', 'superAdmin'] } })
+      // Salary is never listed; it is revealed one person at a time (audited).
+      const status = userRole === 'admin' && req.query.status === 'archived' ? { status: 'archived' } : User.ACTIVE;
+      const users = await User.find({ ...status, role: { $nin: ['admin', 'superAdmin'] } })
+        .select('-salary')
         .populate({ path: "departmentId", select: "name" })
         .populate({ path: "managerId", select: "firstName lastName" });
       return res.status(200).json({ users });
     }
 
     if (userRole === 'manager') {
-      const employees = await User.find({ managerId: req.user.id })
+      const employees = await User.find({ ...User.ACTIVE, managerId: req.user.id })
         .select(TEAM_SAFE_FIELDS)
         .populate('departmentId', 'name');
       return res.status(200).json({ employees });
@@ -209,6 +226,13 @@ exports.updateUser = async (req, res) => {
     delete updateData.passwordResetExpires;
     delete updateData.leaveRequestAllowed;
     delete updateData.remainingLeaveDays;
+    // Archiving has its own audited endpoint (POST /api/people/:id/archive).
+    delete updateData.status;
+    delete updateData.archivedAt;
+    delete updateData.archivedBy;
+    delete updateData.archiveReason;
+    // Salary is not sent to the edit form; an empty field keeps the current value.
+    if (updateData.salary === '' || updateData.salary === undefined || updateData.salary === null) delete updateData.salary;
 
     let newLoginEmail = null;
     let passwordChanged = false;
@@ -244,10 +268,28 @@ exports.updateUser = async (req, res) => {
     }
 
     if (updateData.skills !== undefined) {
-      updateData.skills = parseSkills(updateData.skills);
+      updateData.skills = mergeSkillNames(user.skills, parseSkills(updateData.skills) || []);
     }
 
+    const before = await User.findById(id).select('+salary').lean();
     await User.findByIdAndUpdate(id, updateData, { new: true });
+
+    const changes = audit.diff(before, { ...updateData, ...(passwordChanged ? { password: 'changed' } : {}) }, [
+      'firstName', 'lastName', 'email', 'personalEmail', 'phone', 'position', 'departmentId', 'managerId',
+      'hireDate', 'salary', 'skills', 'role', 'profilePicture', 'password',
+    ]);
+    if (changes.length) {
+      await audit.record({
+        actor: req.user,
+        action: 'user.update',
+        entity: 'User',
+        entityId: user._id,
+        subject: user._id,
+        summary: `Profile of ${user.firstName} ${user.lastName} edited: ${audit.describeChanges(changes)}`,
+        changes,
+        req,
+      });
+    }
 
     // Hire date or role changes affect accrual: recompute from approved requests.
     const hireDateChanged = updateData.hireDate &&
@@ -258,6 +300,7 @@ exports.updateUser = async (req, res) => {
     }
 
     const updatedUser = await User.findById(id)
+      .select('-salary')
       .populate('departmentId', 'name employees')
       .populate('managerId', 'firstName lastName');
 
@@ -316,33 +359,6 @@ async function handleDepartmentChange(userId, user, updateData) {
     }
   }
 }
-
-// Delete user (admin only)
-exports.deleteUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.role === 'manager') {
-      await Department.updateMany({ managerId: id }, { managerId: null });
-      await User.updateMany({ managerId: id }, { managerId: null });
-    }
-
-    if (user.departmentId) {
-      await Department.findByIdAndUpdate(user.departmentId, { $pull: { employees: id } });
-    }
-
-    await User.findByIdAndDelete(id);
-
-    res.status(200).json({ message: 'User deleted successfully' });
-  } catch (err) {
-    console.error('Error deleting user:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
 
 exports.getCurrentUser = async (req, res) => {
   try {

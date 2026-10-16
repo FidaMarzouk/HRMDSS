@@ -1,4 +1,5 @@
 const mongoose = require("mongoose"); 
+const audit = require('../services/audit');
 const Department = require('../Models/Department');
 const User = require('../Models/User');
 
@@ -83,7 +84,7 @@ exports.createDepartment = async (req, res, next) => {
     // Handle employee assignments if provided
     if (employeeIds && Array.isArray(employeeIds) && employeeIds.length > 0) {
       // Get all users with the provided IDs
-      const usersToAdd = await User.find({ _id: { $in: employeeIds } });
+      const usersToAdd = await User.find({ ...User.ACTIVE, _id: { $in: employeeIds } });
       // Filter out users that are not employees
       const employeeOnlyUsers = usersToAdd.filter(user => user.role === 'employee');
       // Get employee IDs
@@ -141,6 +142,10 @@ exports.createDepartment = async (req, res, next) => {
       .populate('employees', 'firstName lastName email position role');
      
    
+    await audit.record({
+      actor: req.user, action: 'department.create', entity: 'Department', entityId: newDepartment._id,
+      summary: `Department "${newDepartment.name}" created`, req,
+    });
     res.status(201).json({
       message: "Department created successfully",
       department: populatedDepartment
@@ -241,7 +246,7 @@ exports.updateDepartment = async (req, res, next) => {
       // 2. Assign them to this department
       if (employeesToAdd.length > 0) {
         // First, get the employees being added to check their current departments
-        const employeesToAddDetails = await User.find({ _id: { $in: employeesToAdd } });
+        const employeesToAddDetails = await User.find({ ...User.ACTIVE, _id: { $in: employeesToAdd } });
         
         // Get unique previous departments (excluding null and current department)
         const previousDepartmentIds = [...new Set(
@@ -304,6 +309,10 @@ exports.updateDepartment = async (req, res, next) => {
       .populate('managerId', 'firstName lastName email')
       .populate('employees', 'firstName lastName email position departmentId');
 
+    await audit.record({
+      actor: req.user, action: 'department.update', entity: 'Department', entityId: department._id,
+      summary: `Department "${department.name}" updated`, req,
+    });
     res.status(200).json({
       message: 'Department updated successfully',
       department: updatedDepartment
@@ -325,7 +334,13 @@ exports.deleteDepartment = async (req, res, next) => {
     );
 
     // Delete the department
-    await Department.findByIdAndDelete(departmentId);
+    const deleted = await Department.findByIdAndDelete(departmentId);
+    if (deleted) {
+      await audit.record({
+        actor: req.user, action: 'department.delete', entity: 'Department', entityId: deleted._id,
+        summary: `Department "${deleted.name}" deleted; its members no longer have a department`, req,
+      });
+    }
 
     res.status(200).json({ message: 'Department deleted successfully' });
   } catch (err) {
@@ -337,7 +352,7 @@ exports.deleteDepartment = async (req, res, next) => {
 exports.getAvailableManagers = async (req, res) => {
   try {
     // Fetch all users with role "manager"
-    const allManagers = await User.find({ role: "manager" })
+    const allManagers = await User.find({ ...User.ACTIVE, role: "manager" })
       .select('firstName lastName email _id');
 
     // Get all departments with their managers to identify current assignments
@@ -367,7 +382,7 @@ exports.getAvailableManagers = async (req, res) => {
 exports.getAssignableEmployees = async (req, res) => {
   try {
     // Get all employees regardless of department assignment
-    const employees = await User.find({ 
+    const employees = await User.find({ ...User.ACTIVE, 
       role: 'employee'  // Only get users with role 'employee'
     })
     .select('firstName lastName email position departmentId')

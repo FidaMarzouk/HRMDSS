@@ -226,7 +226,7 @@ exports.getUserAttendanceByDateRange = async (req, res) => {
 exports.getManagedEmployeesAttendance = async (req, res) => {
   try {
     const managerId = req.user.id;
-    const employees = await User.find({ managerId }).select('_id').lean();
+    const employees = await User.find({ ...User.ACTIVE, managerId }).select('_id').lean();
     const userIds = [...employees.map((e) => e._id), managerId];
 
     const query = { userId: { $in: userIds } };
@@ -265,7 +265,7 @@ exports.markAbsentUsers = async () => {
   const { today, tomorrow } = todayBoundaries();
 
   const [allUsers, usersOnLeave, usersWithAttendanceToday] = await Promise.all([
-    User.find({ hireDate: { $lte: tomorrow } }).select('_id').lean(),
+    User.find({ ...User.ACTIVE, hireDate: { $lte: tomorrow } }).select('_id').lean(),
     LeaveRequest.find({
       startDate: { $lt: tomorrow },
       endDate: { $gte: today },

@@ -1,6 +1,4 @@
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from "../../components/ui/alert-dialog";
-import { uploadUrl } from "../../lib/api";
-import { ROLE_LABELS, formatDate } from "./employeeUtils";
 
 const Section = ({ title, children }) => (
   <section>
@@ -28,48 +26,7 @@ const ModalShell = ({ title, open, onClose, children }) => (
   </AlertDialog>
 );
 
-// Read-only employee profile. Salary is shown only when `showSalary` is set (CEO view).
-export const EmployeeDetailsModal = ({ employee, onClose, showSalary = false }) => (
-  <ModalShell title="Employee Profile" open={Boolean(employee)} onClose={onClose}>
-    {employee && (
-      <>
-        <div className="flex justify-center">
-          <img src={uploadUrl(employee.profilePicture)} alt="" className="w-32 h-32 rounded-full border-4 border-line shadow-md object-cover" />
-        </div>
-        <Section title="Basic information">
-          <Item label="Name">{employee.firstName} {employee.lastName}</Item>
-          <Item label="Role">{ROLE_LABELS[employee.role] || employee.role}</Item>
-          <Item label="Position">{employee.position}</Item>
-          <Item label="Department">{employee.departmentId?.name}</Item>
-          <Item label="Hire date">{formatDate(employee.hireDate)}</Item>
-          {employee.managerId && <Item label="Manager">{employee.managerId.firstName} {employee.managerId.lastName}</Item>}
-          {showSalary && <Item label="Salary">{employee.salary != null ? `${Number(employee.salary).toLocaleString()} DT` : null}</Item>}
-        </Section>
-        <Section title="Contact">
-          <Item label="Work email">{employee.email}</Item>
-          <Item label="Phone">{employee.phone}</Item>
-        </Section>
-        <Section title="Leave">
-          <Item label="Days accrued">{employee.leaveRequestAllowed}</Item>
-          <Item label="Days remaining">{employee.remainingLeaveDays}</Item>
-        </Section>
-        <section>
-          <h3 className="text-lg font-semibold mb-2 text-teal">Skills</h3>
-          <div className="flex flex-wrap gap-2 p-4 border border-line rounded-lg bg-panel">
-            {employee.skills?.length ? (
-              employee.skills.map((skill) => (
-                <span key={skill} className="px-3 py-1 bg-raise rounded-full text-sm border border-line-2 text-ink">{skill}</span>
-              ))
-            ) : (
-              <span className="text-ink-2">No skills listed</span>
-            )}
-          </div>
-        </section>
-      </>
-    )}
-  </ModalShell>
-);
-
+// Read-only view of a department and its members (CEO).
 export const DepartmentDetailsModal = ({ department, onClose }) => (
   <ModalShell title="Department Details" open={Boolean(department)} onClose={onClose}>
     {department && (
