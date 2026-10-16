@@ -7,21 +7,25 @@ const idOf = (ref) => String(ref && typeof ref === 'object' && ref._id ? ref._id
 // URL segment of the approve/reject endpoints for each reviewing role.
 const LEAVE_REVIEW_PATH = { manager: 'manager', admin: 'admin', superAdmin: 'superadmin' };
 
+// Requests with an open counter-proposal wait on the employee, not the reviewer.
+const NOT_WAITING_ON_EMPLOYEE = { 'counterProposal.status': { $ne: 'open' } };
+
 /**
  * Mongo filter for leave requests waiting on this user's decision, or null.
  * Mirrors the checks in leaveRequestController (and LeaveRequestsPage).
  *  - manager: requests routed to them, still Pending
  *  - admin (HR): any request not created by an admin, still in progress
  *  - superAdmin (CEO): requests created by admins, still Pending
+ * Requests waiting on the employee's answer to a counter-proposal are left out.
  */
 const leaveQueueFilter = (user) => {
   switch (user.role) {
     case 'manager':
-      return { managerId: user.id, status: 'Pending', employeeId: { $ne: user.id } };
+      return { managerId: user.id, status: 'Pending', employeeId: { $ne: user.id }, ...NOT_WAITING_ON_EMPLOYEE };
     case 'admin':
-      return { createdBy: { $ne: 'Admin' }, status: { $in: IN_PROGRESS }, employeeId: { $ne: user.id } };
+      return { createdBy: { $ne: 'Admin' }, status: { $in: IN_PROGRESS }, employeeId: { $ne: user.id }, ...NOT_WAITING_ON_EMPLOYEE };
     case 'superAdmin':
-      return { createdBy: 'Admin', status: 'Pending' };
+      return { createdBy: 'Admin', status: 'Pending', ...NOT_WAITING_ON_EMPLOYEE };
     default:
       return null;
   }

@@ -8,6 +8,7 @@ const DepartmentFormModal = ({ open, department, onClose, onSaved }) => {
   const isEditing = Boolean(department);
   const [name, setName] = useState("");
   const [managerId, setManagerId] = useState("");
+  const [coverageLimit, setCoverageLimit] = useState("");
   const [employeeIds, setEmployeeIds] = useState([]);
   const [managers, setManagers] = useState([]);
   const [assignable, setAssignable] = useState([]);
@@ -18,6 +19,7 @@ const DepartmentFormModal = ({ open, department, onClose, onSaved }) => {
     if (!open) return;
     setName(department?.name || "");
     setManagerId(department?.managerId?._id || "");
+    setCoverageLimit(department?.coverageLimit ? String(department.coverageLimit) : "");
     setEmployeeIds((department?.employees || []).map((emp) => emp._id || emp));
     setError("");
     Promise.all([
@@ -42,7 +44,7 @@ const DepartmentFormModal = ({ open, department, onClose, onSaved }) => {
       setError("Please enter a department name.");
       return;
     }
-    const payload = { name: name.trim(), managerId: managerId || null, employeeIds };
+    const payload = { name: name.trim(), managerId: managerId || null, employeeIds, coverageLimit: coverageLimit === "" ? null : Number(coverageLimit) };
     setSaving(true);
     try {
       if (isEditing) {
@@ -69,6 +71,25 @@ const DepartmentFormModal = ({ open, department, onClose, onSaved }) => {
           <div className="mb-4">
             <label htmlFor="dept-name" className="block text-sm font-semibold mb-1 text-ink">Department name</label>
             <input id="dept-name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="dept-coverage" className="block text-sm font-semibold mb-1 text-ink">Coverage limit</label>
+            <input
+              id="dept-coverage"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              value={coverageLimit}
+              onChange={(e) => setCoverageLimit(e.target.value)}
+              placeholder="Default: 25% of the team"
+              aria-describedby="dept-coverage-hint"
+              className={inputClass}
+            />
+            <p id="dept-coverage-hint" className="mt-1 text-xs text-ink-3">
+              Most people who may be on leave on the same working day. Leave approvals warn above this number.
+            </p>
           </div>
 
           <div className="mb-4">

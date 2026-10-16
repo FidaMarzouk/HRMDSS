@@ -21,6 +21,7 @@ const { updateAllUsersLeaveBalance } = require('./Middlewares/leaveCalculationHe
 const { initializeSocket } = require('./Middlewares/notificationService');
 const { markAbsentUsers } = require('./Controllers/attendanceController');
 const knowledgeIndex = require('./services/rag/knowledgeIndex');
+const { resumePendingNotifications } = require('./services/leaveDecisions');
 const authRoutes = require('./Routes/authRoutes');
 const userRoutes = require('./Routes/userRoutes');
 const leaveRequestRoutes = require('./Routes/leaveRequestRoutes');
@@ -110,7 +111,12 @@ app.use((err, req, res, next) => {
 });
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    // Leave decisions whose undo window ended while the server was down.
+    const pending = await resumePendingNotifications();
+    if (pending) console.log(`Resumed ${pending} pending leave decision notification(s)`);
+  })
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Build the assistant's knowledge index in the background; the server starts immediately.

@@ -31,6 +31,13 @@ export const statusKind = (status) => {
 
 export const formatDate = (date) => formatDay(date);
 
+// "24 → 27 Nov" (or "24 Nov" for a single day)
+export const formatRange = (start, end) => {
+  const a = formatDay(start, { day: "numeric", month: "short" });
+  const b = formatDay(end, { day: "numeric", month: "short" });
+  return a === b ? a : `${a} → ${b}`;
+};
+
 export const fullName = (user) => (user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "—");
 
 // Leave is counted in working days (Monday–Friday), like the backend.

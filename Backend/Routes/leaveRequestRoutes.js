@@ -10,7 +10,11 @@ const {
   superAdminRejectRequest,
   superAdminApproveRequest,
   createLeaveRequest,
-  getApprover
+  getApprover,
+  getRequestContext,
+  counterPropose,
+  respondToProposal,
+  undoDecision
 } = require("../Controllers/leaveRequestController");
 const authMiddleware = require("../Middlewares/authMiddleware");
 const roleMiddleware = require("../Middlewares/roleMiddleware");
@@ -41,5 +45,17 @@ router.get("/", authMiddleware, roleMiddleware(['admin', 'superAdmin', 'manager'
 router.get("/superadmin/admin-leave-requests", authMiddleware, roleMiddleware("superAdmin"), getAdminCreatedLeaveRequests);
 router.put("/superadmin/:id/approve", authMiddleware, queueChanged, roleMiddleware("superAdmin"), superAdminApproveRequest);
 router.put("/superadmin/:id/reject", authMiddleware, queueChanged, roleMiddleware("superAdmin"), superAdminRejectRequest);
+
+// Decision support: coverage, checks, approval track (scoped in the controller)
+router.get("/:id/context", authMiddleware, getRequestContext);
+
+// Reviewer suggests other dates; the requester accepts or declines
+const reviewers = roleMiddleware(["manager", "admin", "superAdmin"]);
+router.post("/:id/counter-propose", authMiddleware, queueChanged, reviewers, counterPropose);
+router.post("/:id/counter-proposal/accept", authMiddleware, queueChanged, requesters, respondToProposal(true));
+router.post("/:id/counter-proposal/decline", authMiddleware, queueChanged, requesters, respondToProposal(false));
+
+// Take back an approval or rejection within the undo window
+router.post("/:id/undo", authMiddleware, queueChanged, reviewers, undoDecision);
 
 module.exports = router;
