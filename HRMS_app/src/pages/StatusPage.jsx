@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { useAuth, DASHBOARD_PATHS } from "../context/AuthContext";
+import { useAuth, APP_HOME } from "../context/AuthContext";
 
 // Shared full-page message used for 404 and unauthorized routes.
 const StatusPage = ({ code, title, message }) => {
   const { user } = useAuth();
-  const home = user ? DASHBOARD_PATHS[user.role] || "/" : "/";
+  const home = user ? APP_HOME : "/";
 
   return (
     <div className="min-h-screen bg-ground flex items-center justify-center p-4">
@@ -16,7 +16,7 @@ const StatusPage = ({ code, title, message }) => {
           to={home}
           className="inline-block mt-6 px-5 py-2.5 rounded-lg bg-teal text-on-accent hover:bg-teal-hi transition-colors"
         >
-          {user ? "Back to my dashboard" : "Go to login"}
+          {user ? "Back to Today" : "Go to login"}
         </Link>
       </div>
     </div>

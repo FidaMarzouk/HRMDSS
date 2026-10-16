@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FaRobot, FaSitemap, FaUserPlus, FaUsers } from "react-icons/fa";
 import { RefreshCw } from "lucide-react";
 import api, { errorMessage } from "../../lib/api";
@@ -19,7 +20,9 @@ const AdminEmployeesPage = () => {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
+  // ?q= (from the command palette) pre-fills the search.
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
   const [successMessage, setSuccessMessage] = useState("");
   const [employeeForm, setEmployeeForm] = useState({ open: false, employee: null });
   const [departmentForm, setDepartmentForm] = useState({ open: false, department: null });

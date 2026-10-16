@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FaCalendarPlus, FaRobot, FaSearch } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import api, { errorMessage } from "../../lib/api";
@@ -7,51 +8,8 @@ import useLeaveRequests from "./useLeaveRequests";
 import LeaveRequestTable from "./LeaveRequestTable";
 import LeaveRequestForm from "./LeaveRequestForm";
 import LeaveDecisionDialog from "./LeaveDecisionDialog";
-import { IN_PROGRESS, LEAVE_STATUSES, LEAVE_TYPES, idOf } from "./leaveUtils";
-
-/**
- * Per-role behaviour. `tabs` scope the list; `canReview` mirrors the backend's
- * authorization so buttons only appear when the action is allowed.
- */
-const ROLE_CONFIG = {
-  employee: {
-    title: "My Leave Requests",
-    canCreate: true,
-    tabs: [{ key: "mine", label: "My requests", filter: () => true }],
-    canReview: () => false,
-  },
-  manager: {
-    title: "Leave Requests",
-    canCreate: true,
-    reviewPath: "manager",
-    tabs: [
-      { key: "team", label: "Team requests", filter: (r, me) => idOf(r.managerId) === me && idOf(r.employeeId) !== me },
-      { key: "mine", label: "My requests", filter: (r, me) => idOf(r.employeeId) === me },
-    ],
-    canReview: (r, me) => idOf(r.managerId) === me && idOf(r.employeeId) !== me && r.status === "Pending",
-  },
-  admin: {
-    title: "Leave Request Management",
-    canCreate: true,
-    reviewPath: "admin",
-    tabs: [
-      { key: "review", label: "Awaiting HR decision", filter: (r, me) => r.createdBy !== "Admin" && IN_PROGRESS.includes(r.status) && idOf(r.employeeId) !== me },
-      { key: "all", label: "All requests", filter: () => true },
-      { key: "mine", label: "My requests", filter: (r, me) => idOf(r.employeeId) === me },
-    ],
-    canReview: (r, me) => r.createdBy !== "Admin" && IN_PROGRESS.includes(r.status) && idOf(r.employeeId) !== me,
-  },
-  superAdmin: {
-    title: "Leave Requests",
-    canCreate: false,
-    reviewPath: "superadmin",
-    tabs: [
-      { key: "review", label: "HR administrators' requests", filter: (r) => r.createdBy === "Admin" },
-      { key: "all", label: "All requests", filter: () => true },
-    ],
-    canReview: (r) => r.createdBy === "Admin" && r.status === "Pending",
-  },
-};
+import { LEAVE_STATUSES, LEAVE_TYPES } from "./leaveUtils";
+import { LEAVE_ROLE_CONFIG as ROLE_CONFIG } from "./leavePolicy";
 
 const LeaveRequestsPage = () => {
   const { user } = useAuth();
@@ -63,7 +21,9 @@ const LeaveRequestsPage = () => {
   const scopeFilter = useMemo(() => (request) => tab.filter(request, me), [tab, me]);
   const { loading, error, reload, filtered, pageItems, pagination, filters } = useLeaveRequests({ scopeFilter });
 
-  const [createOpen, setCreateOpen] = useState(false);
+  // ?new=1 (from the command palette) opens the request form directly.
+  const [searchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(() => searchParams.get("new") === "1");
   const [selected, setSelected] = useState(null);
   const [action, setAction] = useState(null);
   const [busy, setBusy] = useState(false);

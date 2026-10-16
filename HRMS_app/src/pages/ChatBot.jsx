@@ -59,6 +59,9 @@ const ChatBot = () => {
   const inputRef = useRef(null);
   const chatbotRef = useRef(null);
   const toggleRef = useRef(null);
+  // A question sent from elsewhere (command palette) waits until history is in.
+  const [historyReady, setHistoryReady] = useState(false);
+  const [pendingQuestion, setPendingQuestion] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640);
@@ -80,7 +83,8 @@ const ChatBot = () => {
         }));
         setConversation(history.length > 0 ? history : [{ ...GREETING, timestamp: new Date() }]);
       })
-      .catch(() => setConversation([{ ...GREETING, timestamp: new Date() }]));
+      .catch(() => setConversation([{ ...GREETING, timestamp: new Date() }]))
+      .finally(() => setHistoryReady(true));
   }, [isOpen, historyLoaded]);
 
   useEffect(() => {
@@ -128,6 +132,24 @@ const ChatBot = () => {
       setIsTyping(false);
     }
   }, [isTyping]);
+
+  // openAssistant(question) from lib/assistant.js opens the panel and asks.
+  useEffect(() => {
+    const onAsk = (event) => {
+      setIsOpen(true);
+      setIsMinimized(false);
+      if (event.detail) setPendingQuestion(String(event.detail));
+    };
+    window.addEventListener("assistant:ask", onAsk);
+    return () => window.removeEventListener("assistant:ask", onAsk);
+  }, []);
+
+  useEffect(() => {
+    if (!historyReady || !pendingQuestion || isTyping) return;
+    const question = pendingQuestion;
+    setPendingQuestion(null);
+    sendMessage(question);
+  }, [historyReady, pendingQuestion, isTyping, sendMessage]);
 
   const clearHistory = async () => {
     try {

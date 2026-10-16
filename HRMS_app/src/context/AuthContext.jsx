@@ -3,12 +3,8 @@ import api from "../lib/api";
 
 const AuthContext = createContext(null);
 
-export const DASHBOARD_PATHS = {
-  admin: "/admin-dashboard",
-  manager: "/manager-dashboard",
-  employee: "/employee-dashboard",
-  superAdmin: "/ceo-dashboard",
-};
+// Where every role lands after signing in.
+export const APP_HOME = "/app/today";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);

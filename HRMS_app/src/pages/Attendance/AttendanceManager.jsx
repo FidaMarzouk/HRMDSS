@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Clock, Coffee, LogOut, CheckCircle } from 'lucide-react';
 import AttendanceReports from './AttendanceReports';
 import { showError, showSuccess } from '../../lib/alerts';
+import { invalidateShell } from '../../lib/queries';
 import api, { errorMessage } from '../../lib/api';
 
 const showSuccessAlert = (title, text) => showSuccess(title, text);
@@ -41,6 +42,7 @@ const AttendanceManager = () => {
         setLoading(true);
         try {
             await api.post(path);
+            invalidateShell(); // header punch status, Today figures, floor
             await refreshToday();
             showSuccessAlert(successTitle, successText);
         } catch (error) {

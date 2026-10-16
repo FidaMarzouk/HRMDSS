@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api, { errorMessage } from "../../lib/api";
-import { useAuth, DASHBOARD_PATHS } from "../../context/AuthContext";
+import { useAuth, APP_HOME } from "../../context/AuthContext";
 import { Mail, Lock, ArrowRight, Power } from "lucide-react";
 
 const RoboticLogin = () => {
@@ -18,9 +18,9 @@ const RoboticLogin = () => {
     setError("");
 
     try {
-      const { data } = await api.post("/api/auth/login", { email, password });
+      await api.post("/api/auth/login", { email, password });
       await refresh();
-      navigate(DASHBOARD_PATHS[data.role] || "/unauthorized", { replace: true });
+      navigate(APP_HOME, { replace: true });
     } catch (error) {
       setError(errorMessage(error, "Authentication failed"));
     } finally {

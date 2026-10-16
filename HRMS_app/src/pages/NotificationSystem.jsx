@@ -3,7 +3,7 @@ import { Bell, CheckCircle, Trash2, Clock, AlertTriangle, Info, FileText, Calend
 import { showError, showInfo } from '../lib/alerts';
 import api from '../lib/api';
 import { useSocketEvent } from '../context/SocketContext';
-import { notifyNotificationsChanged } from '../lib/useUnreadNotifications';
+import { notifyNotificationsChanged } from '../lib/notifications';
 
 const NotificationPage = () => {
   const [notifications, setNotifications] = useState([]);

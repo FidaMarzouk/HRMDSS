@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FaEye, FaSitemap, FaUsers, FaUserTie } from "react-icons/fa";
 import { RefreshCw } from "lucide-react";
 import api, { errorMessage } from "../../lib/api";
@@ -37,7 +38,9 @@ const EmployeeDirectoryPage = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [query, setQuery] = useState("");
+  // ?q= (from the command palette) pre-fills the search.
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
 
