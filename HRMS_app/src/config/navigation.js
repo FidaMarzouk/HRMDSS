@@ -7,9 +7,8 @@ const PeoplePage = lazy(() => import("../features/people/PeoplePage"));
 const LeaveRequestsPage = lazy(() => import("../features/leave/LeaveRequestsPage"));
 const TimePage = lazy(() => import("../features/time/TimePage"));
 const CalendarManager = lazy(() => import("../pages/CalendarManager"));
-const HRDashboardHomepage = lazy(() => import("../pages/dashboards/Admin_Dashboard/HRDashboardHomepage"));
-const ManagerDashboardHomepage = lazy(() => import("../pages/dashboards/Manager_Dashboard/ManagerDashboardHomepage"));
-const EmployeeDashboardHomepage = lazy(() => import("../pages/dashboards/Employee_Dashboard/EmployeeDashboardHomepage"));
+const AnalyticsPage = lazy(() => import("../features/analytics/AnalyticsPage"));
+const MyStatsPage = lazy(() => import("../features/analytics/MyStatsPage"));
 const NotificationPage = lazy(() => import("../pages/NotificationSystem"));
 const ChatComponent = lazy(() => import("../pages/TeamChat"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
@@ -28,10 +27,9 @@ const PAGES = [
   { group: "WORK", key: "time", label: "Time", icon: Clock, component: TimePage, count: "time", keywords: "attendance punch in out break corrections ribbons" },
   { group: "WORK", key: "calendar", label: "Calendar", icon: CalendarDays, component: CalendarManager, count: "calendar", keywords: "events meetings missions bookings resources" },
   // INSIGHT
-  { group: "INSIGHT", key: "analytics", label: "HR analytics", icon: BarChart3, component: HRDashboardHomepage, roles: ["admin", "superAdmin"], keywords: "dashboard charts reports" },
-  { group: "INSIGHT", key: "analytics", label: "Team analytics", icon: BarChart3, component: ManagerDashboardHomepage, roles: ["manager"], keywords: "dashboard charts team" },
-  { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: EmployeeDashboardHomepage, props: { personalView: true }, roles: ["admin", "manager"], keywords: "personal dashboard" },
-  { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: EmployeeDashboardHomepage, roles: ["employee"], keywords: "personal dashboard" },
+  { group: "INSIGHT", key: "analytics", label: "Analytics", icon: BarChart3, component: AnalyticsPage, roles: ["admin", "superAdmin"], keywords: "dashboard charts reports signals coverage lateness overtime" },
+  { group: "INSIGHT", key: "analytics", label: "Team analytics", icon: BarChart3, component: AnalyticsPage, roles: ["manager"], keywords: "dashboard charts team signals coverage" },
+  { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: MyStatsPage, roles: ["admin", "manager", "employee"], keywords: "personal dashboard attendance hours leave balance" },
   // TALK
   { group: "TALK", key: "notifications", label: "Notifications", icon: Bell, component: NotificationPage, count: "notifications", keywords: "alerts inbox" },
   { group: "TALK", key: "chat", label: "Chat", icon: MessageCircle, component: ChatComponent, count: "chat", keywords: "messages team chat" },

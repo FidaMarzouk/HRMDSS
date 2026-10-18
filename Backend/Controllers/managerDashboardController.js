@@ -10,6 +10,9 @@ const Department = require('../Models/Department');
 const Chat = require('../Models/TeamChat');
 const Notification = require('../Models/Notification');
 const { FINAL_APPROVED } = require('../constants/leave');
+const { COMPANY_TZ, dayKey, countWorkingDays } = require('../utils/time');
+const analytics = require('../services/analytics');
+const { EXPECTED_WORK_MINUTES } = require('../constants/attendance');
 
 // Main Manager Dashboard controller
 exports.getManagerDashboardData = async (req, res) => {
@@ -58,9 +61,10 @@ exports.getManagerDashboardData = async (req, res) => {
     const teamIds = teamData.map(employee => employee._id);
     
     // Team attendance metrics
-    const attendanceRate = await getTeamAttendanceRate(teamIds, startDate, endDate);
-    const lateArrivalsTrend = await getLateArrivalsTrend(teamIds, startDate, endDate);
-    const absenteeismRate = await getAbsenteeismRate(teamIds, startDate, endDate);
+    const teamDays = await getTeamDays(teamIds, startDate, endDate);
+    const attendanceRate = getTeamAttendanceRate(teamDays);
+    const lateArrivalsTrend = getLateArrivalsTrend(teamDays);
+    const absenteeismRate = getAbsenteeismRate(teamDays);
     const avgCheckTimes = await getAverageCheckTimes(teamIds, startDate, endDate);
     
     // Leave management metrics
@@ -134,178 +138,80 @@ exports.getManagerDashboardData = async (req, res) => {
 };
 
 // Helper Functions for Team Attendance Metrics
-async function getTeamAttendanceRate(teamIds, startDate, endDate) {
-  const workDays = getWorkingDaysBetweenDates(startDate, endDate);
-  const expectedAttendance = teamIds.length * workDays;
-  
-  const attendanceCount = await Attendance.countDocuments({
-    userId: { $in: teamIds },
-    date: { $gte: startDate, $lte: endDate },
-    status: 'Present'
-  });
-  
+// One cell per person per working day (services/analytics.barcode): several
+// sessions on one day count once, approved leave is not an absence, and days
+// that have not happened yet are not expected.
+async function getTeamDays(teamIds, startDate, endDate) {
+  const today = new Date();
+  const last = endDate < today ? endDate : today;
+  const days = startDate <= last ? analytics.workdays(startDate, last) : [];
+  const [people, sessions, leaves] = await Promise.all([
+    User.find({ _id: { $in: teamIds } }).select('hireDate').lean(),
+    Attendance.find({ userId: { $in: teamIds }, date: { $gte: startDate, $lte: endDate } }).select('userId date checkIn status').lean(),
+    LeaveRequest.find({ employeeId: { $in: teamIds }, status: { $in: FINAL_APPROVED }, startDate: { $lte: endDate }, endDate: { $gte: startDate } }).select('employeeId startDate endDate').lean(),
+  ]);
+  const rows = analytics.barcode({ people: people.map((p) => ({ id: String(p._id), hireDate: p.hireDate })), days, sessions, leaves });
+  return { days, rows };
+}
+
+const countCells = (rows, match) => rows.reduce((n, r) => n + r.cells.filter(match).length, 0);
+
+function getTeamAttendanceRate({ rows }) {
+  const expectedAttendance = countCells(rows, (c) => c && c !== 'leave');
+  const actualAttendance = countCells(rows, (c) => c === 'present' || c === 'late');
   return {
-    rate: expectedAttendance > 0 ? (attendanceCount / expectedAttendance) * 100 : 0,
+    rate: expectedAttendance > 0 ? (actualAttendance / expectedAttendance) * 100 : 0,
     expectedAttendance,
-    actualAttendance: attendanceCount
+    actualAttendance
   };
 }
 
-async function getLateArrivalsTrend(teamIds, startDate, endDate) {
-  // Clone the dates to avoid modifying the originals
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  // Ensure proper time bounds
-  start.setHours(0, 0, 0, 0);
-  end.setHours(23, 59, 59, 999);
-  
-  // Group late arrivals by date
-  const lateArrivals = await Attendance.aggregate([
-    {
-      $match: {
-        userId: { $in: teamIds.map(id => new mongoose.Types.ObjectId(id)) },
-        date: { $gte: start, $lte: end },
-        status: 'Late'
-      }
-    },
-    {
-      $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-        count: { $sum: 1 }
-      }
-    },
-    {
-      $sort: { _id: 1 }
-    }
-  ]);
-  
-  // Fill in missing dates with zero counts
-  const trend = [];
-  const currentDate = new Date(start);
-  while (currentDate <= end) {
-    const dateStr = currentDate.toISOString().split('T')[0];
-    const existingData = lateArrivals.find(item => item._id === dateStr);
-    
-    trend.push({
-      date: dateStr,
-      count: existingData ? existingData.count : 0
-    });
-    
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  
-  return trend;
+function getLateArrivalsTrend({ days, rows }) {
+  return days.map((day, i) => ({
+    date: dayKey(day),
+    count: rows.filter((r) => r.cells[i] === 'late').length
+  }));
 }
 
-async function getAbsenteeismRate(teamIds, startDate, endDate) {
-  const workDays = getWorkingDaysBetweenDates(startDate, endDate);
-  const expectedAttendance = teamIds.length * workDays;
-  
-  const absentCount = await Attendance.countDocuments({
-    userId: { $in: teamIds },
-    date: { $gte: startDate, $lte: endDate },
-    status: 'Absent'
-  });
-  
-  // Calculate approved leave days during this period
-  const approvedLeaves = await LeaveRequest.aggregate([
-    {
-      $match: {
-        employeeId: { $in: teamIds.map(id => new mongoose.Types.ObjectId(id)) },
-        status: { $in: FINAL_APPROVED },
-        startDate: { $lte: endDate },
-        endDate: { $gte: startDate }
-      }
-    },
-    {
-      $project: {
-        days: {
-          $ceil: {
-            $divide: [
-              { $subtract: [
-                { $cond: [{ $lt: ['$endDate', endDate] }, '$endDate', endDate] },
-                { $cond: [{ $gt: ['$startDate', startDate] }, '$startDate', startDate] }
-              ]},
-              86400000 // ms in a day
-            ]
-          }
-        }
-      }
-    },
-    {
-      $group: {
-        _id: null,
-        totalLeaveDays: { $sum: '$days' }
-      }
-    }
-  ]);
-  
-  const approvedLeaveDays = approvedLeaves.length > 0 ? approvedLeaves[0].totalLeaveDays : 0;
-  
-  // Absenteeism rate excludes approved leaves
-  const adjustedAbsentRate = expectedAttendance > 0 ? 
-    ((absentCount - approvedLeaveDays) / expectedAttendance) * 100 : 0;
-  
+function getAbsenteeismRate({ days, rows }) {
+  const expected = countCells(rows, (c) => c && c !== 'leave');
+  const absentDays = countCells(rows, (c) => c === 'absent');
   return {
-    rate: Math.max(0, adjustedAbsentRate), // Ensure no negative rate
-    absentDays: absentCount,
-    approvedLeaveDays,
-    workDays
+    rate: expected > 0 ? (absentDays / expected) * 100 : 0,
+    absentDays,
+    approvedLeaveDays: countCells(rows, (c) => c === 'leave'),
+    workDays: days.length
   };
 }
 
 async function getAverageCheckTimes(teamIds, startDate, endDate) {
-  // Get average check-in and check-out times for the team
+  // Average first punch-in and last punch-out of each person-day, in company time
+  // (averaging hours and minutes separately, in UTC, gave times an hour early).
+  const minutesOf = (field) => ({
+    $add: [{ $multiply: [{ $hour: { date: field, timezone: COMPANY_TZ } }, 60] }, { $minute: { date: field, timezone: COMPANY_TZ } }],
+  });
   const checkTimeAggregation = await Attendance.aggregate([
     {
       $match: {
         userId: { $in: teamIds.map(id => new mongoose.Types.ObjectId(id)) },
         date: { $gte: startDate, $lte: endDate },
-        status: { $ne: 'Absent' } // Exclude absent records
+        checkIn: { $ne: null }
       }
     },
-    {
-      $group: {
-        _id: null,
-        avgCheckInHour: { 
-          $avg: { $hour: "$checkIn" } 
-        },
-        avgCheckInMinute: { 
-          $avg: { $minute: "$checkIn" } 
-        },
-        avgCheckOutHour: { 
-          $avg: { $hour: "$checkOut" } 
-        },
-        avgCheckOutMinute: { 
-          $avg: { $minute: "$checkOut" } 
-        }
-      }
-    }
+    { $group: { _id: { userId: '$userId', date: '$date' }, checkIn: { $min: '$checkIn' }, checkOut: { $max: '$checkOut' } } },
+    { $group: { _id: null, checkIn: { $avg: minutesOf('$checkIn') }, checkOut: { $avg: { $cond: [{ $ifNull: ['$checkOut', false] }, minutesOf('$checkOut'), null] } } } }
   ]);
-  
-  if (checkTimeAggregation.length === 0) {
-    return {
-      averageCheckIn: 'No data',
-      averageCheckOut: 'No data'
-    };
-  }
-  
-  const result = checkTimeAggregation[0];
-  
-  // Format the times
-  const checkInHour = Math.floor(result.avgCheckInHour);
-  const checkInMinute = Math.floor(result.avgCheckInMinute);
-  const checkOutHour = Math.floor(result.avgCheckOutHour);
-  const checkOutMinute = Math.floor(result.avgCheckOutMinute);
-  
-  const formatTime = (hours, minutes) => {
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+  const formatTime = (minutes) => {
+    if (minutes === null || minutes === undefined) return 'No data';
+    const m = Math.round(minutes);
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
-  
+
+  const result = checkTimeAggregation[0] || {};
   return {
-    averageCheckIn: formatTime(checkInHour, checkInMinute),
-    averageCheckOut: formatTime(checkOutHour, checkOutMinute)
+    averageCheckIn: formatTime(result.checkIn),
+    averageCheckOut: formatTime(result.checkOut)
   };
 }
 
@@ -401,7 +307,7 @@ async function getDepartmentLeaveCalendar(departmentId, startDate, endDate) {
       lastDate.setDate(lastDate.getDate() + 1);
       
       while (currentDate < lastDate) {
-        const dateKey = currentDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        const dateKey = dayKey(currentDate); // Format: YYYY-MM-DD
         
         if (!leavesByDay[dateKey]) {
           leavesByDay[dateKey] = [];
@@ -431,45 +337,25 @@ async function getDepartmentLeaveCalendar(departmentId, startDate, endDate) {
 }
 
 async function getLeaveDistributionByType(teamIds, startDate, endDate) {
-  const leaveDistribution = await LeaveRequest.aggregate([
-    {
-      $match: {
-        employeeId: { $in: teamIds.map(id => new mongoose.Types.ObjectId(id)) },
-        startDate: { $lte: endDate },
-        endDate: { $gte: startDate },
-        status: { $in: FINAL_APPROVED }
-      }
-    },
-    {
-      $group: {
-        _id: '$reason',
-        count: { $sum: 1 },
-        days: {
-          $sum: {
-            $ceil: {
-              $divide: [
-                { $subtract: [
-                  { $cond: [{ $lt: ['$endDate', endDate] }, '$endDate', endDate] },
-                  { $cond: [{ $gt: ['$startDate', startDate] }, '$startDate', startDate] }
-                ]},
-                86400000 // ms in a day
-              ]
-            }
-          }
-        }
-      }
-    },
-    {
-      $sort: { days: -1 }
-    }
-  ]);
-  
-  // Format the distribution
-  return leaveDistribution.map(item => ({
-    type: item._id,
-    count: item.count,
-    days: item.days
-  }));
+  // Working days of approved leave inside the period, by leave type
+  // (the old $ceil of the date difference counted a one-day leave as 0 days).
+  const leaves = await LeaveRequest.find({
+    employeeId: { $in: teamIds },
+    startDate: { $lte: endDate },
+    endDate: { $gte: startDate },
+    status: { $in: FINAL_APPROVED }
+  }).select('reason startDate endDate').lean();
+
+  const byType = new Map();
+  leaves.forEach((leave) => {
+    const from = leave.startDate > startDate ? leave.startDate : startDate;
+    const to = leave.endDate < endDate ? leave.endDate : endDate;
+    const item = byType.get(leave.reason) || { type: leave.reason, count: 0, days: 0 };
+    item.count += 1;
+    item.days += countWorkingDays(from, to);
+    byType.set(leave.reason, item);
+  });
+  return [...byType.values()].sort((a, b) => b.days - a.days);
 }
 
 // Helper Functions for Team Productivity Metrics
@@ -484,7 +370,7 @@ async function getAverageProductionHours(teamIds, startDate, endDate) {
     },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: COMPANY_TZ } },
         avgHours: { $avg: "$productionHours" }
       }
     },
@@ -514,7 +400,7 @@ async function getOvertimeTrends(teamIds, startDate, endDate) {
     },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: COMPANY_TZ } },
         totalOvertime: { $sum: "$overtime" },
         employeeCount: { $sum: 1 }
       }
@@ -541,63 +427,6 @@ async function getTeamMemberProductivityMetrics(teamIds, startDate, endDate) {
     
     const teamMemberMetrics = [];
     
-    // Helper function to count working days between two dates
-    function getWorkingDaysBetweenDates(startDate, endDate) {
-      let count = 0;
-      const currentDate = new Date(startDate);
-      const lastDate = new Date(endDate);
-      
-      while (currentDate <= lastDate) {
-        const dayOfWeek = currentDate.getDay();
-        // Skip weekends (0 = Sunday, 6 = Saturday)
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          count++;
-        }
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      return count;
-    }
-    
-    // Helper function to count workdays in a date range
-    function countWorkdaysInRange(startDate, endDate) {
-      let count = 0;
-      const currentDate = new Date(startDate);
-      const lastDate = new Date(endDate);
-      
-      while (currentDate <= lastDate) {
-        const dayOfWeek = currentDate.getDay();
-        // Skip weekends (0 = Sunday, 6 = Saturday)
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          count++;
-        }
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      return count;
-    }
-    
-    // Helper function to get used leave days in a period
-    async function getUsedLeaveDays(userId, startDate, endDate) {
-      const approvedLeaves = await LeaveRequest.find({
-        employeeId: userId,
-        startDate: { $lte: endDate },
-        endDate: { $gte: startDate },
-        status: { $in: FINAL_APPROVED }
-      });
-      
-      let totalLeaveDays = 0;
-      approvedLeaves.forEach(leave => {
-        // Calculate overlap between leave period and our target period
-        const leaveStart = new Date(Math.max(leave.startDate, startDate));
-        const leaveEnd = new Date(Math.min(leave.endDate, endDate));
-        // Calculate business days between the dates
-        totalLeaveDays += countWorkdaysInRange(leaveStart, leaveEnd);
-      });
-      
-      return totalLeaveDays;
-    }
-    
     // For each team member, gather their productivity metrics
     for (const member of teamMembers) {
       try {
@@ -607,18 +436,13 @@ async function getTeamMemberProductivityMetrics(teamIds, startDate, endDate) {
           date: { $gte: startDate, $lte: endDate }
         });
         
-        // Calculate working days in period (excluding weekends)
-        const workingDays = getWorkingDaysBetweenDates(startDate, endDate);
-        
-        // Get leave days used in the period
-        const leaveDays = await getUsedLeaveDays(member._id, startDate, endDate);
-        
-        // Calculate attendance metrics
-        const presentDays = attendanceData.filter(a => a.status === 'Present').length;
-        const lateDays = attendanceData.filter(a => a.status === 'Late').length;
-        
-        // Calculate expected working days (adjusted for approved leave)
-        const expectedWorkDays = workingDays - leaveDays;
+        // One status per working day so far (several sessions count once,
+        // approved leave is not expected)
+        const { rows: [days] } = await getTeamDays([member._id], startDate, endDate);
+        const cells = days ? days.cells : [];
+        const presentDays = cells.filter(c => c === 'present').length;
+        const lateDays = cells.filter(c => c === 'late').length;
+        const expectedWorkDays = presentDays + lateDays + cells.filter(c => c === 'absent').length;
         
         // Calculate productivity metrics
         const totalProductionHours = attendanceData.reduce((sum, record) => 
@@ -628,8 +452,8 @@ async function getTeamMemberProductivityMetrics(teamIds, startDate, endDate) {
         const overtimeHours = attendanceData.reduce((sum, record) => 
           sum + ((record.overtime || 0) / 60), 0); // Convert minutes to hours
         
-        // Expected production hours (8 hours per working day minus leave days)
-        const expectedProductionHours = expectedWorkDays * 8;
+        // Expected production hours (8 h 30 per expected working day)
+        const expectedProductionHours = expectedWorkDays * EXPECTED_WORK_MINUTES / 60;
         
         // Calculate productivity rate
         const productivityRate = expectedProductionHours > 0 
@@ -658,8 +482,10 @@ async function getTeamMemberProductivityMetrics(teamIds, startDate, endDate) {
         const previousTotalProductionHours = previousAttendanceData.reduce((sum, record) => 
           sum + (record.productionHours || 0), 0);
         
-        const previousPresentDays = previousAttendanceData.filter(a => a.status === 'Present').length;
-        const previousLateDays = previousAttendanceData.filter(a => a.status === 'Late').length;
+        const { rows: [previousDays] } = await getTeamDays([member._id], previousPeriodStart, previousPeriodEnd);
+        const previousCells = previousDays ? previousDays.cells : [];
+        const previousPresentDays = previousCells.filter(c => c === 'present').length;
+        const previousLateDays = previousCells.filter(c => c === 'late').length;
         
         const previousAvgProductionHours = previousPresentDays + previousLateDays > 0 
           ? previousTotalProductionHours / (previousPresentDays + previousLateDays)
@@ -981,14 +807,14 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
     // Initialize the date range with zero counts
     let currentDate = new Date(start);
     while (currentDate <= end) {
-      const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const dateString = dayKey(currentDate); // YYYY-MM-DD format
       messagesByDay[dateString] = 0;
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
     // Count messages for each day
     allTeamMessages.forEach(msg => {
-      const msgDate = msg.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const msgDate = dayKey(msg.createdAt); // YYYY-MM-DD format
       if (messagesByDay[msgDate] !== undefined) {
         messagesByDay[msgDate]++;
       }
@@ -1026,9 +852,10 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
     // 1. Event is public OR
     // 2. Event is for this department OR
     // 3. A team member is involved
+    // Upcoming means from now on, whatever period is selected.
     const upcomingEvents = await CalendarEvent.find({
       $and: [
-        { startDateTime: { $gte: startDate, $lte: endDate } },
+        { startDateTime: { $gte: new Date() } },
         { 
           $or: [
             { visibility: 'public' },
@@ -1330,19 +1157,3 @@ async function getResponseTimeToMessages(managerId, startDate, endDate) {
     return new Date(d.setDate(diff));
   }
   
-  // Helper function to count workdays in a date range (excluding weekends)
-function getWorkingDaysBetweenDates(startDate, endDate) {
-    let count = 0;
-    const currentDate = new Date(startDate);
-    
-    while (currentDate <= endDate) {
-      // 0 = Sunday, 6 = Saturday
-      const dayOfWeek = currentDate.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        count++;
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return count;
-  }

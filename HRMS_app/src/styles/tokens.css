@@ -23,7 +23,7 @@
   --on-accent: 255 255 255;/* text on teal / red / amber fills */
   --amber: 143 91 0;       /* #8F5B00 caution */
   --red: 183 58 41;        /* #B73A29 critical */
-  /* Categorical colours, only for legacy charts and event types until they are redrawn */
+  /* Categorical colours for chart categories without a meaning of their own (components/marks/palette.js) and event types */
   --blue: 44 98 150;       /* #2C6296 */
   --violet: 104 84 168;    /* #6854A8 */
   --scrim: rgb(15 27 27 / 0.38);

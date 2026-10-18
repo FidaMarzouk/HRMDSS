@@ -32,26 +32,3 @@ export const useTokens = () => {
 
 // CSS value for inline styles; follows theme changes without re-rendering.
 export const tokenVar = (name, alpha) => (alpha == null ? `rgb(var(--${name}))` : `rgb(var(--${name}) / ${alpha})`);
-
-// Colours for the legacy Recharts dashboards (replaced by the Pulse marks in
-// Phase 6). Same shape as the old hard-coded `colors` objects.
-export const useChartColors = () => {
-  const t = useTokens();
-  return useMemo(
-    () => ({
-      primary: t.teal,
-      secondary: t.tealHi,
-      accent: t.teal,
-      background: t.raise,
-      card: t.panel,
-      text: t.ink,
-      textSecondary: t.ink3,
-      border: t.line2,
-      grid: t.line,
-      axis: t.ink3,
-      danger: t.red,
-      chartColors: [t.teal, t.blue, t.red, t.amber, t.violet, t.ink3, t.tealHi],
-    }),
-    [t]
-  );
-};
