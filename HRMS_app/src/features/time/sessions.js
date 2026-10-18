@@ -12,13 +12,15 @@ export const formatDuration = (minutes) => {
 /**
  * { state, since, lastOut, workedMinutes, late }
  * state: "out" (not punched in today), "in", "break", "left" (all sessions closed)
- * workedMinutes excludes breaks and counts open sessions up to `now`.
+ * workedMinutes excludes breaks and counts open sessions up to `now`;
+ * breakMinutes is today's total break time.
  */
 export function summarizeSessions(sessions = [], now = new Date()) {
   const worked = sessions.filter((s) => s.checkIn).sort((a, b) => new Date(a.checkIn) - new Date(b.checkIn));
-  if (worked.length === 0) return { state: "out", since: null, lastOut: null, workedMinutes: 0, late: false };
+  if (worked.length === 0) return { state: "out", since: null, lastOut: null, workedMinutes: 0, breakMinutes: 0, late: false, source: null };
 
   let workedMinutes = 0;
+  let totalBreak = 0;
   worked.forEach((s) => {
     const end = s.checkOut ? new Date(s.checkOut) : now;
     const breakMinutes = (s.breaks || []).reduce((sum, b) => {
@@ -26,6 +28,7 @@ export function summarizeSessions(sessions = [], now = new Date()) {
       const bEnd = b.endTime ? new Date(b.endTime) : now;
       return sum + Math.max(0, (bEnd - new Date(b.startTime)) / 60000);
     }, 0);
+    totalBreak += breakMinutes;
     workedMinutes += Math.max(0, (end - new Date(s.checkIn)) / 60000 - breakMinutes);
   });
 
@@ -38,6 +41,9 @@ export function summarizeSessions(sessions = [], now = new Date()) {
     breakSince: onBreak ? open.breaks.find((b) => b.startTime && !b.endTime).startTime : null,
     lastOut: closed.length ? closed[closed.length - 1].checkOut : null,
     workedMinutes,
+    breakMinutes: totalBreak,
     late: worked[0].status === "Late",
+    lateBy: worked[0].lateBy || 0,
+    source: worked[worked.length - 1].source || null,
   };
 }

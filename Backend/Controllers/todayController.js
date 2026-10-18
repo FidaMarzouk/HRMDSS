@@ -5,6 +5,7 @@ const Attendance = require('../Models/Attendance');
 const CalendarEvent = require('../Models/CalendarEvent');
 const Notification = require('../Models/Notification');
 const Chat = require('../Models/TeamChat');
+const AttendanceCorrection = require('../Models/AttendanceCorrection');
 const { FINAL_APPROVED, IN_PROGRESS } = require('../constants/leave');
 const { todayBoundaries, startOfDay } = require('../utils/time');
 const policies = require('../services/policies');
@@ -124,7 +125,15 @@ const eventItems = async (user, now) => {
   return events.map((e) => today.eventQueueItem(e, today.eventClashes(e, bookings), now));
 };
 
-const buildQueue = async (user, now) => today.sortQueue([...(await leaveItems(user, now)), ...(await eventItems(user, now))]);
+const correctionItems = async (user) => {
+  const filter = policies.correctionQueueFilter(user);
+  if (!filter) return [];
+  const rows = await AttendanceCorrection.find(filter).populate('userId', 'firstName lastName profilePicture').lean();
+  return rows.map(today.correctionQueueItem);
+};
+
+const buildQueue = async (user, now) =>
+  today.sortQueue([...(await leaveItems(user, now)), ...(await eventItems(user, now)), ...(await correctionItems(user))]);
 
 // --- Endpoints ------------------------------------------------------------------
 
@@ -158,6 +167,7 @@ exports.getToday = async (req, res) => {
         total: queue.length,
         leave: queue.filter((i) => i.kind === 'leave').length,
         events: queue.filter((i) => i.kind === 'event').length,
+        corrections: queue.filter((i) => i.kind === 'correction').length,
       },
       mine,
       asOf: now,
@@ -185,14 +195,16 @@ exports.getCounts = async (req, res) => {
     const now = new Date();
     const userId = req.user.id;
     const leaveFilter = policies.leaveQueueFilter(req.user);
-    const [leave, events, invitations, notifications, chat] = await Promise.all([
+    const correctionFilter = policies.correctionQueueFilter(req.user);
+    const [leave, events, invitations, notifications, chat, corrections] = await Promise.all([
       leaveFilter ? LeaveRequest.countDocuments(leaveFilter) : 0,
       policies.canReviewEvents(req.user) ? CalendarEvent.countDocuments({ status: 'pending', endDateTime: { $gte: startOfDay(now) } }) : 0,
       CalendarEvent.countDocuments({ startDateTime: { $gte: now }, usersInvolved: { $elemMatch: { userId, status: 'pending' } } }),
       Notification.countDocuments({ recipient: userId, isRead: false }),
       Chat.countDocuments({ receiver: userId, isRead: false, deletedForReceiver: { $ne: true } }),
+      correctionFilter ? AttendanceCorrection.countDocuments(correctionFilter) : 0,
     ]);
-    res.json({ today: leave + events, leave, calendar: events + invitations, notifications, chat });
+    res.json({ today: leave + events + corrections, leave, calendar: events + invitations, notifications, chat, time: corrections });
   } catch (error) {
     console.error('Error counting badges:', error);
     res.status(500).json({ message: 'Server error' });

@@ -365,6 +365,7 @@ async function main() {
             userId: user._id, date: day, sessionNumber: idx + 1, checkIn: inTime, checkOut: outTime,
             status: idx === 0 ? (lateBy > 0 ? 'Late' : 'Present') : (lateBy > 0 ? 'Late' : 'Present'),
             breaks, earlyBy, lateBy, overtime, productionHours: Number((Math.max(0, worked) / 60).toFixed(2)),
+            source: chance(0.2) ? 'mobile' : 'web',
           });
         });
       }
@@ -396,7 +397,7 @@ async function main() {
         userId: user._id, date: TODAY, sessionNumber: 1, checkIn, checkOut,
         status: lateBy > 0 ? 'Late' : 'Present', breaks, lateBy,
         earlyBy: checkIn < at(TODAY, 8) ? minutes(checkIn, at(TODAY, 8)) : 0,
-        overtime: 0, productionHours: 0,
+        overtime: 0, productionHours: 0, source: chance(0.2) ? 'mobile' : 'web',
       });
     }
   }

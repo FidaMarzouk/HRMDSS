@@ -48,6 +48,16 @@ const attendanceSchema = new mongoose.Schema({
   productionHours: {
     type: Number, // in hours
     default: 0
+  },
+  // Where the punch came from; "correction" when created by an approved correction.
+  source: {
+    type: String,
+    enum: ['web', 'mobile', 'correction'],
+  },
+  // Set when an approved correction changed this session.
+  correctionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AttendanceCorrection'
   }
 });
 

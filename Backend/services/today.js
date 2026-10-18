@@ -95,6 +95,23 @@ const eventQueueItem = (event, clashes, now) => {
   };
 };
 
+const CORRECTION_LABEL = { missing_punch_out: 'Missing punch-out', missing_punch_in: 'Forgotten punch-in', wrong_times: 'Wrong times' };
+const clock = (d) => (d ? new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '');
+
+const correctionQueueItem = (c) => ({
+  kind: 'correction',
+  id: idOf(c._id),
+  person: c.userId ? { id: idOf(c.userId), firstName: c.userId.firstName, lastName: c.userId.lastName, profilePicture: c.userId.profilePicture } : null,
+  title: `${fullName(c.userId)} · ${CORRECTION_LABEL[c.kind]}`,
+  correction: { kind: c.kind, checkIn: clock(c.checkIn), checkOut: clock(c.checkOut), reason: c.reason },
+  startDate: c.date,
+  endDate: c.date,
+  // Corrections touch past days (and payroll): they sort by the day concerned.
+  deadline: c.date,
+  flags: [],
+  approve: { method: 'put', url: `/api/attendance/corrections/${idOf(c._id)}/approve` },
+});
+
 // Soonest deadline first; items with a red flag first within the same day.
 const sortQueue = (items) =>
   [...items].sort((a, b) => {
@@ -150,6 +167,7 @@ module.exports = {
   leaveQueueItem,
   eventClashes,
   eventQueueItem,
+  correctionQueueItem,
   sortQueue,
   presenceStatus,
   summarizePresence,

@@ -37,3 +37,13 @@ export const countWorkingDays = (start, end) => {
   }
   return count;
 };
+
+// Africa/Tunis is UTC+1 all year (no daylight saving since 2009).
+const COMPANY_OFFSET = "+01:00";
+
+// ISO timestamp for a company day ("2026-10-14") and a time ("17:30").
+export const companyDateTime = (dayKey, hhmm) => (dayKey && hhmm ? `${dayKey}T${hhmm}:00${COMPANY_OFFSET}` : null);
+
+// "17:30" in company time, for <input type="time">.
+export const toTimeInputValue = (value) =>
+  value ? new Date(value).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: COMPANY_TZ }) : "";
