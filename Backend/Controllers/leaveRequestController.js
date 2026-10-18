@@ -255,7 +255,7 @@ exports.getRequestContext = async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Leave request not found' });
     const request = await LeaveRequest.findById(req.params.id)
-      .populate('employeeId', 'firstName lastName position role departmentId remainingLeaveDays leaveRequestAllowed profilePicture')
+      .populate('employeeId', 'firstName lastName position role departmentId remainingLeaveDays leaveRequestAllowed profilePicture hireDate')
       .populate('managerId', 'firstName lastName role')
       .populate('history.by', 'firstName lastName')
       .populate('counterProposal.by', 'firstName lastName')
@@ -281,7 +281,9 @@ exports.getRequestContext = async (req, res) => {
 
     const subject = { ...request, employeeId: employee._id };
     const coverage = rules.buildCoverage({ request: subject, teamMembers, teamLeave, limit });
-    const balance = { remaining: employee.remainingLeaveDays ?? 0, allowance: employee.leaveRequestAllowed ?? 0 };
+    // Balance of the year the request starts in (balances restart at 0 on 1 January).
+    const yearly = await leaveHelper.balanceForDate(employee, request.startDate);
+    const balance = { remaining: yearly.remainingDays, allowance: yearly.totalAccruedDays, year: yearly.year };
     const checks = rules.policyChecks({ request, balance, coverage });
     const suggestion = coverage.overLimit.length
       ? rules.suggestDates({ request: subject, teamLeave, limit, earliest: rules.addWorkdays(startOfDay(new Date()), 1) })

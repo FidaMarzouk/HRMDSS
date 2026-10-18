@@ -158,7 +158,7 @@ const formatShort = (date) => new Date(date).toLocaleDateString('en-GB', { day: 
 
 /**
  * Checks shown before a decision. tone: "ok" | "warn" | "fail" | "info".
- *  balance: { remaining, allowance } after the last recalculation
+ *  balance: { remaining, allowance, year? } of the year the request starts in
  */
 const policyChecks = ({ request, balance, coverage, now = new Date() }) => {
   const checks = [];
@@ -180,10 +180,11 @@ const policyChecks = ({ request, balance, coverage, now = new Date() }) => {
   // Balance: approved requests are already counted in `remaining`.
   if (balance) {
     const after = FINAL_APPROVED.includes(request.status) ? balance.remaining : balance.remaining - days;
+    const ofYear = balance.year && balance.year !== now.getFullYear() ? ` earned in ${balance.year} by then` : '';
     checks.push(
       after >= 0
-        ? { id: 'balance', tone: 'ok', text: `Balance after this request: ${after} of ${balance.allowance} days` }
-        : { id: 'balance', tone: 'fail', text: `Exceeds the balance by ${-after} day${after === -1 ? '' : 's'} (${balance.remaining} left, ${days} requested)` }
+        ? { id: 'balance', tone: 'ok', text: `Balance after this request: ${after} of ${balance.allowance} days${ofYear}` }
+        : { id: 'balance', tone: 'fail', text: `Exceeds the balance by ${-after} day${after === -1 ? '' : 's'} (${balance.remaining} left${ofYear}, ${days} requested)` }
     );
   }
 
