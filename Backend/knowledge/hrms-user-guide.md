@@ -20,16 +20,17 @@
 
 ### Finding your way
 - The **sidebar** groups pages under **WORK** (Today, People or My team, Leave, Time, Calendar), **INSIGHT**
-  (Analytics or Team analytics, My stats) and **TALK** (Notifications, Chat, Profile). Small numbers next to a page
+  (Analytics or Team analytics, My stats) and **TALK** (Inbox, Profile). Small numbers next to a page
   show how many things wait for you there. Collapse the sidebar with the arrow button; on a phone, open it with the
   menu button.
-- The **top bar** shows a greeting, today's date and week, a timeline of your shift, the notification bell, the theme
-  switch (light, dark or follow your system) and your punch status.
+- The **top bar** shows a greeting, today's date and week, a timeline of your shift, the bell (it counts only what
+  needs your action and opens the Inbox), the theme switch (light, dark or follow your system) and your punch status.
 - **Search or run a command (Ctrl K):** opens the command palette. Type to find a person, a page or an action
   (Request leave, Punch in, Start break, Punch out, approve an item waiting for you, change the theme, log out), or
   ask the ENOVA Assistant. Arrow keys move, Enter runs.
 - Each page has its own address (for example `/app/leave` or `/app/calendar?view=resources`), so refreshing or
-  sharing a link keeps you on the same view. Old links to the former dashboards are redirected.
+  sharing a link keeps you on the same view. Old links to the former dashboards, Notifications and Chat pages are
+  redirected.
 
 ### Pages by role
 | Page | Employee | Manager | HR Administrator | CEO |
@@ -41,7 +42,7 @@
 | Calendar | Yes | Yes | Yes (also approves events) | Yes |
 | Analytics | — | Team analytics | Analytics (company) | Analytics (company) |
 | My stats | Yes | Yes | Yes | — |
-| Notifications, Chat, Profile | Yes | Yes | Yes | Yes |
+| Inbox (notifications and messages), Profile | Yes | Yes | Yes | Yes |
 
 ## Today
 - A strip of figures at the top. For reviewers: people in the building, late today, on leave or mission, and items
@@ -204,20 +205,34 @@ and leave balance, then tabs **Overview** (monthly performance and your team), *
 minutes, production hours and overtime), **Leave** (balance, request status, usage by type, recent requests) and
 **Calendar** (upcoming events, how busy your calendar is, busiest hours, next events).
 
-## Team Chat
-- Open **Chat** from the sidebar. The left panel lists colleagues and your conversations with their unread counts;
-  search by name.
-- Select a colleague to open the conversation, type a message and press **Enter** (Shift+Enter for a new line).
-- Messages arrive in real time. Opening a conversation marks its messages as read.
-- Open a message's options menu to delete it (it disappears for you only). **Delete conversation** clears the
-  conversation from your view; the other person keeps their copy.
+## Inbox
 
-## Notifications
-- The bell in the top bar shows how many notifications are unread. New ones also pop up briefly in the corner.
-- The **Notifications** page lists them with filters. Mark one or all as read, or delete them.
-- You are notified about leave requests, decisions and proposed dates, attendance corrections, event invitations,
-  approvals and responses.
-- Notifications are deleted automatically after 30 days.
+### Notifications
+- Open **Inbox** from the sidebar or the bell. Notifications are split into **Needs action** (a request waiting for
+  your decision, an invitation to answer, new dates proposed for your leave) and **For information** (everything
+  else). Items leave Needs action by themselves once they are decided, by you or by someone else.
+- Each notification shows the request as a card with its current status and buttons: **Approve** (with a few seconds
+  to **Undo**, as on Today), **Decline**, **Accept** / **Decline** an invitation, **Accept new dates** / **Keep my
+  dates**, and **Open** to go to the page. Rejecting a leave request or a correction is done from its page, where you
+  can give a reason.
+- **Urgent** items (something to act on today or tomorrow, sick or emergency leave) are marked as such.
+- **Mark read**, **Mark all read** (For information) and the trash icon (delete) keep the list tidy. Notifications are
+  deleted automatically after 30 days.
+- **Daily digest at 09:00**: switch it on to receive non-urgent notifications as one summary at 09:00 on working days
+  instead of one by one; urgent ones still arrive right away. Items waiting for the digest are marked "In 09:00 digest".
+
+### Messages
+- The **Messages** side of the Inbox lists your conversations with each colleague's position and whether they are in
+  (with their arrival time within your department; elsewhere only in, away or out), the last message and unread counts.
+- Search by name to open a conversation or start a new one.
+- Type a message and press **Enter** (Shift+Enter for a new line). Messages arrive in real time; opening a
+  conversation marks it read, and your last message shows "read" once the other person has seen it.
+- **Share a request** (paperclip): pick one of your requests in progress (leave, events, corrections) or one of theirs
+  that waits on your decision. It appears in the conversation as a card with its live status; if it waits on the
+  other person, they can act on it from the card.
+- Delete a message for yourself with the trash icon next to its time, or the whole conversation from the **…** menu;
+  the other person keeps their copy.
+- On a phone, switch between **Notifications** and **Messages** at the top of the Inbox.
 
 ## Profile
 - Open **Profile** from the sidebar or by clicking your initials in the top bar.
@@ -247,6 +262,8 @@ The ENOVA Assistant answers from two files on the server: `Backend/knowledge/eno
 - **A page is missing from your sidebar:** it belongs to another role.
 - **Numbers or lists not updating live:** they refresh on their own; if not, reload the page. If it persists, contact
   HR or IT.
+- **A notification is not in Needs action any more:** the request was decided or answered (maybe by someone else);
+  it is under For information.
 - **Leave request refused for insufficient balance:** check your balance on the Leave form; days are counted
   Monday–Friday only, and balances restart at 0 on 1 January.
 - **A time record is wrong:** use **Fix…** on the Time page (up to 31 days back).

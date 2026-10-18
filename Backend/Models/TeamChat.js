@@ -11,9 +11,15 @@ const ChatSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  // Text; may be empty when the message only carries a card.
   message: {
     type: String,
-    required: true,
+    default: '',
+  },
+  // A request shown as a card in the thread, with its live status and actions.
+  attachment: {
+    kind: { type: String, enum: ['leave', 'event', 'correction'] },
+    id: { type: mongoose.Schema.Types.ObjectId },
   },
   isRead: {
     type: Boolean,

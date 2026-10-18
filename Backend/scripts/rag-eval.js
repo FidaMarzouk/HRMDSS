@@ -41,6 +41,8 @@ const CASES = [
   ['How do I add a new employee?', 'Add, edit or archive a person'],
   ['What does punctuality mean on my stats?', 'My stats'],
   ['How do I mark notifications as read?', 'Notifications'],
+  ['What is the daily digest?', 'Notifications'],
+  ['How do I share my leave request in a chat?', 'Messages'],
   ['How do I change my profile picture?', 'Profile'],
   ['Which public holidays do we have?', 'Public holidays'],
 ];

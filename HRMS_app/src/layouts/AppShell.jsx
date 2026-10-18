@@ -10,7 +10,7 @@ import { ThemeSwitch } from "../components/ui/theme-switch";
 import { cn } from "../lib/utils";
 import { useCounts } from "../lib/queries";
 import useLiveUpdates from "../lib/useLiveUpdates";
-import { DEFAULT_PAGE, GROUPS, pagesFor, pathFor } from "../config/navigation";
+import { DEFAULT_PAGE, GROUPS, PAGE_ALIASES, pagesFor, pathFor } from "../config/navigation";
 import { ShiftRuler } from "../features/shell/ShiftRuler";
 import { PunchStatus } from "../features/shell/PunchStatus";
 import { LogoutDialog } from "../features/shell/LogoutDialog";
@@ -115,7 +115,14 @@ export default function AppShell() {
     };
   }, [mobileMenuOpen]);
 
-  if (!active) return <Navigate to={`${pathFor(DEFAULT_PAGE)}${location.search}`} replace />;
+  if (!active) {
+    const alias = PAGE_ALIASES[pageKey];
+    if (alias) {
+      const search = [alias.search, location.search.replace(/^\?/, "")].filter(Boolean).join("&");
+      return <Navigate to={`${pathFor(alias.key)}${search ? `?${search}` : ""}`} replace />;
+    }
+    return <Navigate to={`${pathFor(DEFAULT_PAGE)}${location.search}`} replace />;
+  }
 
   const showLabels = sidebarOpen || isMobile;
   const countOf = (page) => (page.count ? counts.data?.[page.count] || 0 : 0);
@@ -263,8 +270,8 @@ export default function AppShell() {
           <ThemeSwitch compact className="hidden sm:inline-flex" />
 
           <Link
-            to={pathFor("notifications")}
-            aria-label={counts.data?.notifications ? `Notifications, ${counts.data.notifications} unread` : "Notifications"}
+            to={pathFor("inbox")}
+            aria-label={counts.data?.notifications ? `Inbox, ${counts.data.notifications} need${counts.data.notifications === 1 ? "s" : ""} your action` : "Inbox, nothing needs your action"}
             className="relative grid h-10 w-10 flex-none place-items-center rounded-md text-ink-2 hover:bg-sunk hover:text-ink"
           >
             <Bell className="h-[18px] w-[18px]" />

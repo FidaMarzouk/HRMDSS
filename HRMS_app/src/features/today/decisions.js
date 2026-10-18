@@ -30,6 +30,8 @@ const settle = (id) => {
 const refresh = () => {
   invalidateShell();
   queryClient.invalidateQueries({ queryKey: ["leave"] });
+  queryClient.invalidateQueries({ queryKey: ["inbox"] });
+  queryClient.invalidateQueries({ queryKey: ["calendar"] });
 };
 
 // Leave: the server applies the decision at once and holds the notification

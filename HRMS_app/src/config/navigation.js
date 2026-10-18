@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { BarChart3, Bell, CalendarDays, Clipboard, Clock, Gauge, MessageCircle, SlidersHorizontal, Sun, Users } from "lucide-react";
+import { BarChart3, CalendarDays, Clipboard, Clock, Gauge, Inbox, SlidersHorizontal, Sun, Users } from "lucide-react";
 
 // Pages are loaded on first visit, so each role only downloads what it opens.
 const TodayPage = lazy(() => import("../features/today/TodayPage"));
@@ -9,8 +9,7 @@ const TimePage = lazy(() => import("../features/time/TimePage"));
 const CalendarPage = lazy(() => import("../features/calendar/CalendarPage"));
 const AnalyticsPage = lazy(() => import("../features/analytics/AnalyticsPage"));
 const MyStatsPage = lazy(() => import("../features/analytics/MyStatsPage"));
-const NotificationPage = lazy(() => import("../pages/NotificationSystem"));
-const ChatComponent = lazy(() => import("../pages/TeamChat"));
+const InboxPage = lazy(() => import("../features/inbox/InboxPage"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
 
 /*
@@ -31,8 +30,7 @@ const PAGES = [
   { group: "INSIGHT", key: "analytics", label: "Team analytics", icon: BarChart3, component: AnalyticsPage, roles: ["manager"], keywords: "dashboard charts team signals coverage" },
   { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: MyStatsPage, roles: ["admin", "manager", "employee"], keywords: "personal dashboard attendance hours leave balance" },
   // TALK
-  { group: "TALK", key: "notifications", label: "Notifications", icon: Bell, component: NotificationPage, count: "notifications", keywords: "alerts inbox" },
-  { group: "TALK", key: "chat", label: "Chat", icon: MessageCircle, component: ChatComponent, count: "chat", keywords: "messages team chat" },
+  { group: "TALK", key: "inbox", label: "Inbox", icon: Inbox, component: InboxPage, count: "inbox", keywords: "notifications alerts messages chat digest" },
   { group: "TALK", key: "profile", label: "Profile", icon: SlidersHorizontal, component: ProfilePage, keywords: "account settings password" },
 ];
 
@@ -43,6 +41,15 @@ export const DEFAULT_PAGE = "today";
 export const pagesFor = (role) => PAGES.filter((p) => !p.roles || p.roles.includes(role));
 
 export const pathFor = (key) => `/app/${key}`;
+
+// Pages that were merged into another one: /app/<old> opens the new page.
+export const PAGE_ALIASES = {
+  notifications: { key: "inbox", search: "" },
+  chat: { key: "inbox", search: "tab=messages" },
+};
+
+// Link to a conversation with someone in the inbox.
+export const messagePath = (userId) => `${pathFor("inbox")}?tab=messages&with=${userId}`;
 
 // Old dashboard URLs (/admin-dashboard?page=...) map to the new page keys.
 const LEGACY_KEYS = { personal: "my-stats", employees: "people", attendance: "time" };

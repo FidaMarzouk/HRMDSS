@@ -31,6 +31,14 @@ const leaveQueueFilter = (user) => {
   }
 };
 
+// Who may see a leave request: HR and the CEO, the requester, and the manager it is routed to.
+const canSeeLeave = (user, request) => {
+  if (user.role === 'admin' || user.role === 'superAdmin') return true;
+  const me = String(user.id);
+  if (idOf(request.employeeId) === me) return true;
+  return user.role === 'manager' && idOf(request.managerId) === me;
+};
+
 const canReviewLeave = (user, request) => {
   if (idOf(request.employeeId) === String(user.id)) return false;
   switch (user.role) {
@@ -107,6 +115,7 @@ module.exports = {
   LEAVE_REVIEW_PATH,
   leaveQueueFilter,
   canReviewLeave,
+  canSeeLeave,
   canReviewEvents,
   presenceScope,
 };

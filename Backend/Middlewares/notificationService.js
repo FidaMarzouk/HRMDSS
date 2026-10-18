@@ -4,6 +4,7 @@ const Notification = require('../Models/Notification');
 const User = require('../Models/User');
 const verifyToken = require('../utils/jwtVerify');
 const accountStatus = require('../services/accountStatus');
+const inbox = require('../services/inbox');
 let io;
 
 // The browser cannot read the httpOnly auth cookie, but it is sent with the
@@ -69,13 +70,39 @@ const buildNotification = (recipient, notification) => ({
   isRead: false
 });
 
+/**
+ * One record per recipient, with what the inbox needs: whether they can act on
+ * the related item (actionable), how urgent it is, and whether it waits for
+ * their 09:00 digest (held: normal priority and the digest switched on).
+ */
+const prepare = async (recipientIds, notification) => {
+  const kind = inbox.kindOfType(notification.type);
+  const item = kind && notification.relatedId
+    ? (await inbox.loadItems([{ kind, id: notification.relatedId }])).get(`${kind}:${String(notification.relatedId)}`)
+    : null;
+  const users = await User.find({ _id: { $in: recipientIds } }).select('role preferences').lean();
+  return users.map((u) => {
+    const actionable = item ? inbox.actionsFor(kind, item, { id: String(u._id), role: u.role }).length > 0 : false;
+    const priority = notification.priority || inbox.priorityOf(kind, item, { actionable });
+    return { ...buildNotification(u._id, notification), actionable, priority, held: priority === 'normal' && Boolean(u.preferences?.digest) };
+  });
+};
+
+// Push to the recipients' sockets, except those held for the digest.
+const push = (created) => {
+  if (!io) return;
+  created.filter((n) => !n.held).forEach((n) => io.to(String(n.recipient)).emit('notification', n));
+};
+
 // Send notification to specific user
 const sendNotificationToUser = async (userId, notification) => {
   try {
-    const newNotification = await Notification.create(buildNotification(userId, notification));
-    if (io) {
-      io.to(String(userId)).emit('notification', newNotification);
-    }
+    const [doc] = await prepare([userId], notification);
+    if (!doc) return null;
+    const newNotification = await Notification.create(doc);
+    push([newNotification]);
+    // The item changed: earlier notifications about it may no longer need action.
+    await inbox.refresh(notification.relatedId);
     return newNotification;
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -90,12 +117,9 @@ const sendNotificationToRole = async (role, notification) => {
     const users = await User.find({ role, ...User.ACTIVE }).select('_id').lean();
     if (users.length === 0) return [];
 
-    const created = await Notification.insertMany(
-      users.map((u) => buildNotification(u._id, notification))
-    );
-    if (io) {
-      created.forEach((n) => io.to(String(n.recipient)).emit('notification', n));
-    }
+    const created = await Notification.insertMany(await prepare(users.map((u) => u._id), notification));
+    push(created);
+    await inbox.refresh(notification.relatedId);
     return created;
   } catch (error) {
     console.error('Error sending role notification:', error);

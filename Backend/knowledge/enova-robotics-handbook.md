@@ -48,7 +48,7 @@ Each employee belongs to one department, and the department's manager is automat
 ## Contacting HR
 - **Email:** hr@enovarobotics.eu
 - **Phone extension:** 103
-- **In the HRMS:** use Team Chat to message an HR administrator directly.
+- **In the HRMS:** open **Inbox** › Messages to write to an HR administrator directly.
 
 Questions about salary, payslips, contracts, benefits or anything personal and confidential should go to HR
 directly. The ENOVA Assistant cannot see salary information.
@@ -330,7 +330,7 @@ overtime above 3 hours per person per week in a department, missing punch-outs, 
 
 ## Remote work
 Remote work may be granted occasionally with your manager's agreement, for tasks that don't
-require lab access. Agree on it in advance, remain reachable during working hours via Team Chat, and keep recording
+require lab access. Agree on it in advance, remain reachable during working hours through the Inbox messages, and keep recording
 your attendance in the HRMS.
 
 ## Accounts and security
@@ -345,8 +345,21 @@ your attendance in the HRMS.
 
 ### Notifications and data retention
 - You receive in-app notifications for leave requests, decisions and proposed dates, attendance corrections, event
-  invitations, event approvals and responses.
+  invitations, event approvals and responses. They are collected in the **Inbox**.
+- Notifications you can act on (a request waiting for your decision, an invitation to answer, dates proposed for your
+  leave) are listed under **Needs action**; they leave that list by themselves once the item is decided or answered,
+  by you or by someone else. Everything else is **For information**. The bell counts only what needs your action.
+- **Urgent** notifications are something to act on that starts today or tomorrow, sick or emergency leave requests,
+  and decisions on leave that starts within two days.
+- **Daily digest** (optional, in the Inbox): when it is on, notifications that are not urgent are not pushed one by
+  one; they are summed up in one notification at **09:00 on working days**. Urgent ones still arrive right away.
+  Switching it off delivers what was waiting.
 - Notifications are automatically deleted after **30 days**.
+- In messages you can share a leave request, event or time correction as a **card**; the other person sees its
+  current status and, if it waits on them, can act on it from the conversation. You can only share requests you are
+  allowed to see, and the card shows nothing to someone who is not allowed to see it.
+- Next to each colleague, messages show their position and whether they are in: within your own department (or for
+  HR and the CEO) with the time they arrived, otherwise only "in", "away" or "out".
 - Your conversation with the ENOVA Assistant is stored so you can see it later; you can clear it at any time from the
   chat window.
 

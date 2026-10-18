@@ -10,7 +10,7 @@ import { StatusPill } from "../../components/ui/status-pill";
 import { Menu } from "../../components/ui/menu";
 import { formatDay } from "../../lib/dates";
 import { cn } from "../../lib/utils";
-import { pathFor } from "../../config/navigation";
+import { pathFor, messagePath } from "../../config/navigation";
 import { formatRange, statusKind } from "../leave/leaveUtils";
 import { formatClock } from "../time/sessions";
 import { EmployeeForm } from "./EmployeeForm";
@@ -286,7 +286,7 @@ export function ProfileDrawer({ personId, mode = "view", departments, onClose, o
   ];
 
   const menuItems = [
-    ...(permissions.canMessage ? [{ label: "Message", onSelect: () => navigate(`${pathFor("chat")}?with=${person.id}`) }] : []),
+    ...(permissions.canMessage ? [{ label: "Message", onSelect: () => navigate(messagePath(person.id)) }] : []),
     ...(permissions.canEdit && person?.status !== "archived" ? [{ label: "Edit details", onSelect: () => onModeChange("edit") }] : []),
     ...(permissions.canArchive ? [{ divider: true }, { label: "Archive…", danger: true, onSelect: () => setArchiveOpen(true) }] : []),
     ...(permissions.archiveBlocked ? [{ divider: true }, { label: `Archive: ${permissions.archiveBlocked}`, disabled: true }] : []),
@@ -342,7 +342,7 @@ export function ProfileDrawer({ personId, mode = "view", departments, onClose, o
                 {mode !== "edit" && (
                   <div className="flex flex-wrap gap-2">
                     {permissions.canMessage && (
-                      <Button size="sm" onClick={() => navigate(`${pathFor("chat")}?with=${person.id}`)}><MessageCircle /> Message</Button>
+                      <Button size="sm" onClick={() => navigate(messagePath(person.id))}><MessageCircle /> Message</Button>
                     )}
                     {permissions.canEdit && person.status !== "archived" && (
                       <Button size="sm" variant="secondary" onClick={() => onModeChange("edit")}><Pencil /> Edit</Button>

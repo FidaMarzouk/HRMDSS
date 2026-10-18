@@ -243,12 +243,7 @@ exports.respondToProposal = (accept) => async (req, res) => {
 
 // --- Decision support ----------------------------------------------------------------
 
-const canSee = (user, request) => {
-  if (user.role === 'admin' || user.role === 'superAdmin') return true;
-  const me = String(user.id);
-  if (policies.idOf(request.employeeId) === me) return true;
-  return user.role === 'manager' && policies.idOf(request.managerId) === me;
-};
+const canSee = policies.canSeeLeave;
 
 // GET /:id/context: approval track, team coverage, policy checks and suggested dates.
 exports.getRequestContext = async (req, res) => {

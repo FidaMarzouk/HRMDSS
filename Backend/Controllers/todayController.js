@@ -1,15 +1,15 @@
 // Today view, presence, sidebar counts and people search for the app shell.
 const User = require('../Models/User');
 const LeaveRequest = require('../Models/LeaveRequest');
-const Attendance = require('../Models/Attendance');
 const CalendarEvent = require('../Models/CalendarEvent');
 const Notification = require('../Models/Notification');
 const Chat = require('../Models/TeamChat');
 const AttendanceCorrection = require('../Models/AttendanceCorrection');
 const { FINAL_APPROVED, IN_PROGRESS } = require('../constants/leave');
-const { todayBoundaries, startOfDay } = require('../utils/time');
+const { startOfDay } = require('../utils/time');
 const policies = require('../services/policies');
 const today = require('../services/today');
+const { loadPresence } = require('../services/presence');
 
 const PERSON_FIELDS = 'firstName lastName profilePicture departmentId';
 const idOf = policies.idOf;
@@ -24,31 +24,10 @@ const computePresence = async (user, me, now = new Date()) => {
     .select('firstName lastName position role profilePicture departmentId')
     .populate('departmentId', 'name')
     .lean();
-  const ids = people.map((p) => p._id);
-  const { today: dayStart, tomorrow } = todayBoundaries(now);
-
-  const [sessions, leaves, missions] = await Promise.all([
-    Attendance.find({ userId: { $in: ids }, date: { $gte: dayStart, $lt: tomorrow } }).select('userId checkIn checkOut status breaks lateBy').lean(),
-    LeaveRequest.find({ employeeId: { $in: ids }, status: { $in: FINAL_APPROVED }, startDate: { $lte: dayStart }, endDate: { $gte: dayStart } }).select('employeeId').lean(),
-    CalendarEvent.find({ eventType: 'mission', status: 'approved', startDateTime: { $lte: now }, endDateTime: { $gte: now } }).select('createdBy usersInvolved').lean(),
-  ]);
-
-  const sessionsBy = new Map();
-  sessions.forEach((s) => {
-    const key = idOf(s.userId);
-    sessionsBy.set(key, [...(sessionsBy.get(key) || []), s]);
-  });
-  const onLeave = new Set(leaves.map((l) => idOf(l.employeeId)));
-  const onMission = new Set();
-  missions.forEach((m) => {
-    onMission.add(idOf(m.createdBy));
-    (m.usersInvolved || []).filter((u) => u.status !== 'declined').forEach((u) => onMission.add(idOf(u.userId)));
-  });
+  const presence = await loadPresence(people.map((p) => p._id), now);
 
   const enriched = people.map((p) => {
-    const own = sessionsBy.get(idOf(p._id)) || [];
-    const worked = own.filter((s) => s.checkIn).sort((a, b) => new Date(a.checkIn) - new Date(b.checkIn));
-    const openSession = worked.find((s) => !s.checkOut);
+    const state = presence.get(idOf(p._id));
     return {
       id: idOf(p._id),
       firstName: p.firstName,
@@ -57,11 +36,7 @@ const computePresence = async (user, me, now = new Date()) => {
       profilePicture: p.profilePicture,
       department: p.departmentId?.name || 'No department',
       departmentId: p.departmentId ? idOf(p.departmentId) : null,
-      status: today.presenceStatus({ sessions: own, onLeave: onLeave.has(idOf(p._id)), onMission: onMission.has(idOf(p._id)) }),
-      since: worked[0]?.checkIn || null,
-      onBreak: Boolean(openSession?.breaks?.some((b) => b.startTime && !b.endTime)),
-      lateToday: worked[0]?.status === 'Late',
-      lateBy: worked[0]?.lateBy || 0,
+      ...state,
     };
   });
 
@@ -200,11 +175,12 @@ exports.getCounts = async (req, res) => {
       leaveFilter ? LeaveRequest.countDocuments(leaveFilter) : 0,
       policies.canReviewEvents(req.user) ? CalendarEvent.countDocuments({ status: 'pending', endDateTime: { $gte: startOfDay(now) } }) : 0,
       CalendarEvent.countDocuments({ startDateTime: { $gte: now }, usersInvolved: { $elemMatch: { userId, status: 'pending' } } }),
-      Notification.countDocuments({ recipient: userId, isRead: false }),
+      // The bell counts only what needs action (see services/inbox.js).
+      Notification.countDocuments({ recipient: userId, actionable: true, doneAt: null }),
       Chat.countDocuments({ receiver: userId, isRead: false, deletedForReceiver: { $ne: true } }),
       correctionFilter ? AttendanceCorrection.countDocuments(correctionFilter) : 0,
     ]);
-    res.json({ today: leave + events + corrections, leave, calendar: events + invitations, notifications, chat, time: corrections });
+    res.json({ today: leave + events + corrections, leave, calendar: events + invitations, notifications, chat, inbox: notifications + chat, time: corrections });
   } catch (error) {
     console.error('Error counting badges:', error);
     res.status(500).json({ message: 'Server error' });

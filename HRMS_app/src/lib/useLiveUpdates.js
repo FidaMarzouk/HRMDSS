@@ -1,5 +1,6 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useSocketEvent } from "../context/SocketContext";
+import { toast } from "./feedback";
 import { keys, queryClient } from "./queries";
 
 // Refetch shell data when the server announces a change. The events carry no
@@ -14,23 +15,26 @@ export default function useLiveUpdates() {
   const onQueue = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: keys.today });
     queryClient.invalidateQueries({ queryKey: keys.counts });
-    // Bookings and approvals made elsewhere change lanes and clashes.
+    // Bookings and approvals made elsewhere change lanes, clashes and inbox cards.
     queryClient.invalidateQueries({ queryKey: ["calendar"] });
+    queryClient.invalidateQueries({ queryKey: ["inbox"] });
   }, []);
 
-  const onNotification = useCallback(() => {
+  // A notification pushed to this person (held digest items are never pushed):
+  // show it briefly and refresh the inbox and the bell.
+  const onNotification = useCallback((n) => {
+    queryClient.invalidateQueries({ queryKey: keys.counts });
+    queryClient.invalidateQueries({ queryKey: ["inbox"] });
+    if (n?.title) toast({ tone: n.priority === "urgent" ? "warning" : "info", title: n.title, text: n.message });
+  }, []);
+
+  const onChat = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: keys.counts });
   }, []);
 
   useSocketEvent("presence:changed", onPresence);
   useSocketEvent("queue:changed", onQueue);
   useSocketEvent("notification", onNotification);
-  useSocketEvent("newMessage", onNotification);
-  useSocketEvent("messagesRead", onNotification);
-
-  // Pages that mark notifications read announce it with a window event.
-  useEffect(() => {
-    window.addEventListener("notifications:changed", onNotification);
-    return () => window.removeEventListener("notifications:changed", onNotification);
-  }, [onNotification]);
+  useSocketEvent("newMessage", onChat);
+  useSocketEvent("messagesRead", onChat);
 }

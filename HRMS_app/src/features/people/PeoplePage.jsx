@@ -4,7 +4,7 @@ import { Search, UserPlus, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../lib/queries";
 import { cn } from "../../lib/utils";
-import { pathFor } from "../../config/navigation";
+import { messagePath } from "../../config/navigation";
 import Pagination, { usePagination } from "../../components/Pagination";
 import { Avatar } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
@@ -200,7 +200,7 @@ export default function PeoplePage() {
                   const menu = [
                     { label: "Open profile", onSelect: () => openDrawer(id) },
                     ...(isHr && !archived ? [{ label: "Edit details", onSelect: () => openDrawer(id, "edit") }] : []),
-                    ...(!archived ? [{ label: "Message", onSelect: () => navigate(`${pathFor("chat")}?with=${id}`) }] : []),
+                    ...(!archived ? [{ label: "Message", onSelect: () => navigate(messagePath(id)) }] : []),
                     ...(isHr && !archived
                       ? [
                           { divider: true },
