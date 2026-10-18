@@ -34,11 +34,11 @@ function QueueRow({ item, pending }) {
       </div>
       <button
         type="button"
-        disabled={pending}
+        disabled={pending || Boolean(item.blocked)}
         onClick={() => approveItem(item)}
-        aria-label={`Approve: ${item.title}`}
-        title="Approve"
-        className="grid h-9 w-9 flex-none place-items-center rounded-md border border-teal/40 bg-teal/10 text-teal hover:bg-teal/20 disabled:opacity-50"
+        aria-label={item.blocked ? `Cannot approve: ${item.title}. ${item.blocked}` : `Approve: ${item.title}`}
+        title={item.blocked || "Approve"}
+        className="grid h-9 w-9 flex-none place-items-center rounded-md border border-teal/40 bg-teal/10 text-teal hover:bg-teal/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Check className="h-4 w-4" />
       </button>

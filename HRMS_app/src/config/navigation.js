@@ -6,7 +6,7 @@ const TodayPage = lazy(() => import("../features/today/TodayPage"));
 const PeoplePage = lazy(() => import("../features/people/PeoplePage"));
 const LeaveRequestsPage = lazy(() => import("../features/leave/LeaveRequestsPage"));
 const TimePage = lazy(() => import("../features/time/TimePage"));
-const CalendarManager = lazy(() => import("../pages/CalendarManager"));
+const CalendarPage = lazy(() => import("../features/calendar/CalendarPage"));
 const AnalyticsPage = lazy(() => import("../features/analytics/AnalyticsPage"));
 const MyStatsPage = lazy(() => import("../features/analytics/MyStatsPage"));
 const NotificationPage = lazy(() => import("../pages/NotificationSystem"));
@@ -25,7 +25,7 @@ const PAGES = [
   { group: "WORK", key: "people", label: "My team", icon: Users, component: PeoplePage, roles: ["manager"], keywords: "employees team directory" },
   { group: "WORK", key: "leave", label: "Leave", icon: Clipboard, component: LeaveRequestsPage, count: "leave", keywords: "leave requests time off vacation" },
   { group: "WORK", key: "time", label: "Time", icon: Clock, component: TimePage, count: "time", keywords: "attendance punch in out break corrections ribbons" },
-  { group: "WORK", key: "calendar", label: "Calendar", icon: CalendarDays, component: CalendarManager, count: "calendar", keywords: "events meetings missions bookings resources" },
+  { group: "WORK", key: "calendar", label: "Calendar", icon: CalendarDays, component: CalendarPage, count: "calendar", keywords: "events meetings missions bookings resources" },
   // INSIGHT
   { group: "INSIGHT", key: "analytics", label: "Analytics", icon: BarChart3, component: AnalyticsPage, roles: ["admin", "superAdmin"], keywords: "dashboard charts reports signals coverage lateness overtime" },
   { group: "INSIGHT", key: "analytics", label: "Team analytics", icon: BarChart3, component: AnalyticsPage, roles: ["manager"], keywords: "dashboard charts team signals coverage" },

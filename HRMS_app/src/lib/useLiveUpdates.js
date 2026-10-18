@@ -14,6 +14,8 @@ export default function useLiveUpdates() {
   const onQueue = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: keys.today });
     queryClient.invalidateQueries({ queryKey: keys.counts });
+    // Bookings and approvals made elsewhere change lanes and clashes.
+    queryClient.invalidateQueries({ queryKey: ["calendar"] });
   }, []);
 
   const onNotification = useCallback(() => {
