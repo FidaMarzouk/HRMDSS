@@ -338,10 +338,27 @@ your attendance in the HRMS.
 ### Your HRMS account
 - Your account is created by HR. You receive an email with a link to set your password; the link is valid for
   24 hours. If it expires, use **Forgot password** on the login page.
-- Login sessions last **5 hours**, after which you need to sign in again.
+- Login sessions last **5 hours**, after which you need to sign in again. Each sign-in is listed on your profile
+  (device, approximate network, when it started and was last active); you can sign out any of them, or **all other
+  devices** at once. Logging out ends the session on the server too.
+- When your password changes, every other device is signed out, and you receive an in-app notification and an email.
+  If you did not change it, contact HR right away.
 - Forgotten password: use **Forgot password** on the login page. The reset link is sent to your personal email
   (or your work email if no personal email is recorded), is valid for **10 minutes**, and can be used once.
-- To change your password from your profile, you must enter your current password.
+- To change your password from your profile, you must enter your current password. A password reset with a link
+  signs out every device, and so does a new password set by HR.
+
+### Profile and preferences
+- Your profile shows an access card (name, position, department, staff reference), this year's leave balance and
+  this month's hours.
+- You can change your names, phone, personal email, date of birth, photo and skills yourself. Your work email,
+  position, department, manager, hire date and access level are managed by HR: ask HR to change them. Skills rated by
+  your manager or HR stay on your profile.
+- **Theme**: light, dark, auto (follows your device) or **auto by shift** (light during your working day, dark once you
+  have punched out, and outside 07:00–19:00 when you have not punched in). The choice is saved to your profile and
+  follows you on every device.
+- **Quiet hours**: during the hours you choose, non-urgent notifications do not pop up; they still wait in your inbox.
+  Urgent ones still pop up.
 
 ### Notifications and data retention
 - You receive in-app notifications for leave requests, decisions and proposed dates, attendance corrections, event

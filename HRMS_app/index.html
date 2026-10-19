@@ -11,6 +11,7 @@
     // Apply the saved theme before first paint (see src/theme/ThemeProvider.jsx).
     try {
       var mode = localStorage.getItem("pulse-theme");
+      if (mode === "shift") mode = localStorage.getItem("pulse-theme-shift");
       if (mode === "light" || mode === "dark") document.documentElement.setAttribute("data-theme", mode);
     } catch (e) {}
   </script>

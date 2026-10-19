@@ -14,6 +14,7 @@ import { DEFAULT_PAGE, GROUPS, PAGE_ALIASES, pagesFor, pathFor } from "../config
 import { ShiftRuler } from "../features/shell/ShiftRuler";
 import { PunchStatus } from "../features/shell/PunchStatus";
 import { LogoutDialog } from "../features/shell/LogoutDialog";
+import { useThemeSync } from "../features/shell/useThemeSync";
 import { CommandPalette } from "../features/command/CommandPalette";
 import enovaWordmark from "../assets/logo.png";
 import enovaIcon from "../assets/enova_logo.png";
@@ -62,6 +63,7 @@ export default function AppShell() {
   const { isMobile, width } = useViewport();
   const counts = useCounts();
   useLiveUpdates();
+  useThemeSync();
 
   const pages = useMemo(() => pagesFor(user?.role), [user?.role]);
   const active = pages.find((p) => p.key === pageKey);

@@ -5,6 +5,7 @@ const User = require('../Models/User');
 const verifyToken = require('../utils/jwtVerify');
 const accountStatus = require('../services/accountStatus');
 const inbox = require('../services/inbox');
+const sessions = require('../services/sessions');
 let io;
 
 // The browser cannot read the httpOnly auth cookie, but it is sent with the
@@ -42,6 +43,9 @@ const initializeSocket = (server, origin) => {
 
     if (accountStatus.isArchived(result.user.id)) {
       return next(new Error('Authentication error: Account archived'));
+    }
+    if (!sessions.isActive(result.user.sid)) {
+      return next(new Error('Authentication error: Session signed out'));
     }
 
     socket.user = result.user;
@@ -81,26 +85,47 @@ const prepare = async (recipientIds, notification) => {
     ? (await inbox.loadItems([{ kind, id: notification.relatedId }])).get(`${kind}:${String(notification.relatedId)}`)
     : null;
   const users = await User.find({ _id: { $in: recipientIds } }).select('role preferences').lean();
-  return users.map((u) => {
+  const quietNow = new Set(users.filter((u) => inQuietHours(u.preferences?.quietHours)).map((u) => String(u._id)));
+  const docs = users.map((u) => {
     const actionable = item ? inbox.actionsFor(kind, item, { id: String(u._id), role: u.role }).length > 0 : false;
     const priority = notification.priority || inbox.priorityOf(kind, item, { actionable });
     return { ...buildNotification(u._id, notification), actionable, priority, held: priority === 'normal' && Boolean(u.preferences?.digest) };
   });
+  return { docs, quietNow };
 };
 
-// Push to the recipients' sockets, except those held for the digest.
-const push = (created) => {
+// True when `now` (company time) falls inside the person's quiet hours.
+// A range like 19:00 -> 08:00 wraps around midnight.
+const inQuietHours = (quiet, now = new Date()) => {
+  if (!quiet?.enabled || !quiet.from || !quiet.to) return false;
+  const toMin = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+  const m = now.getHours() * 60 + now.getMinutes();
+  const from = toMin(quiet.from);
+  const to = toMin(quiet.to);
+  if (from === to) return false;
+  return from < to ? m >= from && m < to : m >= from || m < to;
+};
+
+// Push to the recipients' sockets, except those held for the digest. During
+// quiet hours non-urgent ones are sent silently (badges update, no pop-up).
+const push = (created, quietNow = new Set()) => {
   if (!io) return;
-  created.filter((n) => !n.held).forEach((n) => io.to(String(n.recipient)).emit('notification', n));
+  created
+    .filter((n) => !n.held)
+    .forEach((n) => {
+      const payload = typeof n.toObject === 'function' ? n.toObject() : n;
+      const silent = n.priority !== 'urgent' && quietNow.has(String(n.recipient));
+      io.to(String(n.recipient)).emit('notification', silent ? { ...payload, silent: true } : payload);
+    });
 };
 
 // Send notification to specific user
 const sendNotificationToUser = async (userId, notification) => {
   try {
-    const [doc] = await prepare([userId], notification);
-    if (!doc) return null;
-    const newNotification = await Notification.create(doc);
-    push([newNotification]);
+    const { docs, quietNow } = await prepare([userId], notification);
+    if (!docs[0]) return null;
+    const newNotification = await Notification.create(docs[0]);
+    push([newNotification], quietNow);
     // The item changed: earlier notifications about it may no longer need action.
     await inbox.refresh(notification.relatedId);
     return newNotification;
@@ -117,8 +142,9 @@ const sendNotificationToRole = async (role, notification) => {
     const users = await User.find({ role, ...User.ACTIVE }).select('_id').lean();
     if (users.length === 0) return [];
 
-    const created = await Notification.insertMany(await prepare(users.map((u) => u._id), notification));
-    push(created);
+    const { docs, quietNow } = await prepare(users.map((u) => u._id), notification);
+    const created = await Notification.insertMany(docs);
+    push(created, quietNow);
     await inbox.refresh(notification.relatedId);
     return created;
   } catch (error) {
@@ -142,6 +168,7 @@ const broadcastOnSuccess = (event) => (req, res, next) => {
 };
 
 module.exports = {
+  inQuietHours,
   initializeSocket,
   sendNotificationToUser,
   sendNotificationToRole,

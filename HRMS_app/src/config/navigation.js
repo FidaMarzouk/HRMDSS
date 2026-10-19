@@ -10,7 +10,7 @@ const CalendarPage = lazy(() => import("../features/calendar/CalendarPage"));
 const AnalyticsPage = lazy(() => import("../features/analytics/AnalyticsPage"));
 const MyStatsPage = lazy(() => import("../features/analytics/MyStatsPage"));
 const InboxPage = lazy(() => import("../features/inbox/InboxPage"));
-const ProfilePage = lazy(() => import("../pages/ProfilePage"));
+const ProfilePage = lazy(() => import("../features/profile/ProfilePage"));
 
 /*
  * Pages live at /app/:key. Each role gets the groups below, filtered by `roles`.
@@ -31,7 +31,7 @@ const PAGES = [
   { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: MyStatsPage, roles: ["admin", "manager", "employee"], keywords: "personal dashboard attendance hours leave balance" },
   // TALK
   { group: "TALK", key: "inbox", label: "Inbox", icon: Inbox, component: InboxPage, count: "inbox", keywords: "notifications alerts messages chat digest" },
-  { group: "TALK", key: "profile", label: "Profile", icon: SlidersHorizontal, component: ProfilePage, keywords: "account settings password" },
+  { group: "TALK", key: "profile", label: "Profile", icon: SlidersHorizontal, component: ProfilePage, keywords: "account settings password sessions devices theme quiet hours digest passport" },
 ];
 
 export const GROUPS = ["WORK", "INSIGHT", "TALK"];
