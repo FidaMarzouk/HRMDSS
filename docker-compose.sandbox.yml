@@ -1,0 +1,123 @@
+# Test sandbox: a complete, throwaway copy of the system where the assistant's
+# actions are carried out for real and checked. Nothing here touches the real
+# database: MongoDB starts empty (in memory), is seeded with the demo company,
+# and is discarded with `down`.
+#   docker compose -f docker-compose.sandbox.yml --env-file Agent/.env up -d --build
+#   docker compose -f docker-compose.sandbox.yml --env-file Agent/.env run --rm eval
+#   docker compose -f docker-compose.sandbox.yml down
+name: enova-sandbox
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: [/tmp]
+  pids_limit: 200
+
+x-secret: &secret
+  AGENT_SHARED_SECRET: sandbox-shared-secret-not-for-production-0123456789
+
+services:
+  sandbox-mongo:
+    image: mongo:7
+    tmpfs: [/data/db]
+    networks: [backend_net]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 5s
+      retries: 20
+
+  seed:
+    build: ./Backend
+    # --reset is safe here: MONGO_URI points at the throwaway sandbox database.
+    command: ["node", "scripts/seed.js", "--reset"]
+    environment:
+      MONGO_URI: mongodb://sandbox-mongo:27017/HRMS
+      # The image defaults to production, where the seed script refuses to run.
+      NODE_ENV: sandbox
+    networks: [backend_net]
+    depends_on:
+      sandbox-mongo: { condition: service_healthy }
+    restart: "no"
+
+  backend:
+    build: ./Backend
+    environment:
+      <<: *secret
+      MONGO_URI: mongodb://sandbox-mongo:27017/HRMS
+      PORT: "8081"
+      JWT_SECRET: sandbox-jwt-secret-not-for-production
+      FRONTEND_URL: http://localhost:5173
+      AGENT_URL: http://gateway:8090
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: openai/gpt-oss-120b
+    networks: [backend_net, edge]
+    ports: ["127.0.0.1:18081:8081"]
+    depends_on:
+      seed: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8081/api/auth/verify').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      retries: 30
+
+  gateway:
+    <<: *hardened
+    build: ./Agent
+    command: ["node", "gateway/server.js"]
+    environment:
+      AGENT_TARGET: http://agent:8090
+      BACKEND_TARGET: http://backend:8081
+    networks: [agent_net, edge]
+
+  agent:
+    <<: *hardened
+    build: ./Agent
+    environment:
+      <<: *secret
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      AGENT_MAIN_MODELS: ${AGENT_MAIN_MODELS:-openai/gpt-oss-120b,qwen/qwen3.8-27b}
+      AGENT_ROUTER_MODEL: ${AGENT_ROUTER_MODEL:-openai/gpt-oss-20b}
+      AGENT_MAX_RATE_LIMIT_WAIT: ${AGENT_MAX_RATE_LIMIT_WAIT:-12}
+      BACKEND_URL: http://gateway:8443/backend
+      GROQ_BASE_URL: http://gateway:8443/groq
+      LANGSMITH_ENDPOINT: http://gateway:8443/langsmith
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: enova-assistant-sandbox
+      # In the sandbox the data is fake: traces may show inputs and outputs.
+      LANGSMITH_HIDE_INPUTS: "false"
+      LANGSMITH_HIDE_OUTPUTS: "false"
+      AGENT_MONGO_URI: mongodb://agent-mongo:27017
+    networks: [agent_net]
+    depends_on: [agent-mongo, gateway]
+    mem_limit: 512m
+    cpus: 1.0
+
+  agent-mongo:
+    image: mongo:7
+    tmpfs: [/data/db]
+    networks: [agent_net]
+
+  # Runs the evaluation tasks against the sandbox and writes a report.
+  eval:
+    build: ./Agent
+    command: ["node", "eval/run-eval.js"]
+    profiles: [eval]
+    environment:
+      BACKEND_URL: http://backend:8081
+      SANDBOX_MONGO_URI: mongodb://sandbox-mongo:27017/HRMS
+      EVAL_LABEL: ${EVAL_LABEL:-default}
+      EVAL_PAUSE_MS: ${EVAL_PAUSE_MS:-15000}
+      EVAL_ONLY: ${EVAL_ONLY:-}
+    volumes: ["./Agent/eval/reports:/app/eval/reports"]
+    user: root
+    networks: [edge, backend_net]
+    depends_on:
+      backend: { condition: service_healthy }
+
+networks:
+  agent_net:
+    internal: true
+  backend_net:
+    internal: true
+  edge: {}

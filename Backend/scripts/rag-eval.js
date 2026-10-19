@@ -2,6 +2,7 @@
 // Usage: npm run rag:eval
 process.env.TZ = 'Africa/Tunis';
 const knowledgeIndex = require('../services/rag/knowledgeIndex');
+const { embed } = require('../services/rag/embedder');
 
 // question -> text that should appear in one of the top-5 result headings
 const CASES = [
@@ -47,10 +48,15 @@ const CASES = [
   ['How do I sign out my other devices?', 'Profile'],
   ['What does the shift theme do?', 'Profile and preferences'],
   ['Which public holidays do we have?', 'Public holidays'],
+  ['Can the assistant approve leave requests for me?', 'What the assistant may do'],
+  ['Does the assistant keep what I write?', 'What is recorded'],
+  ['What happens when I click Confirm on an assistant card?', 'Let it prepare actions'],
 ];
 
 (async () => {
   const stats = await knowledgeIndex.build();
+  // Search falls back to keywords while the model loads; this check wants the full hybrid ranking.
+  await embed(['warm up']).catch(() => {});
   let hits = 0;
   for (const [question, expected] of CASES) {
     const results = await knowledgeIndex.search(question, 5);

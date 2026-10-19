@@ -1,8 +1,8 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Navigate, useLocation, useParams } from "react-router-dom";
 import { getISOWeek } from "date-fns";
-import { Bell, ChevronRight, LogOut, Menu, Search, X } from "lucide-react";
-import ChatBot from "../pages/ChatBot";
+import { Bell, Bot, ChevronRight, LogOut, Menu, Search, X } from "lucide-react";
+import { AssistantDock } from "../features/assistant/AssistantDock";
 import { useAuth } from "../context/AuthContext";
 import { Avatar } from "../components/ui/avatar";
 import { Kbd } from "../components/ui/kbd";
@@ -72,6 +72,31 @@ export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(width >= 1100);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(() => {
+    try {
+      return localStorage.getItem("pulse-assistant") === "open";
+    } catch {
+      return false;
+    }
+  });
+  const toggleAssistant = useCallback((value) => {
+    setAssistantOpen((prev) => {
+      const next = typeof value === "boolean" ? value : !prev;
+      try {
+        localStorage.setItem("pulse-assistant", next ? "open" : "closed");
+      } catch {
+        // per-device convenience only
+      }
+      return next;
+    });
+  }, []);
+
+  // "Ask the ENOVA Assistant" (Ctrl K) opens the dock; the dock sends the question.
+  useEffect(() => {
+    const onAsk = () => toggleAssistant(true);
+    window.addEventListener("assistant:ask", onAsk);
+    return () => window.removeEventListener("assistant:ask", onAsk);
+  }, [toggleAssistant]);
   const [now, setNow] = useState(new Date());
   const sidebarRef = useRef(null);
   const mainRef = useRef(null);
@@ -283,20 +308,35 @@ export default function AppShell() {
               </span>
             )}
           </Link>
+          <button
+            type="button"
+            onClick={() => toggleAssistant()}
+            aria-pressed={assistantOpen}
+            aria-label="ENOVA Assistant"
+            title="ENOVA Assistant"
+            className={cn("grid h-10 w-10 flex-none place-items-center rounded-md hover:bg-sunk", assistantOpen ? "bg-teal/10 text-teal" : "text-ink-2 hover:text-ink")}
+          >
+            <Bot className="h-[18px] w-[18px]" />
+          </button>
           <PunchStatus className="hidden lg:block" />
           <Link to={pathFor("profile")} aria-label="Your profile" className="flex-none rounded-full">
             <Avatar user={user} size="sm" />
           </Link>
         </header>
 
-        <main id="main" ref={mainRef} tabIndex={-1} className="relative flex-1 p-3 focus:outline-none md:p-6">
+        <main id="main" ref={mainRef} tabIndex={-1} className={cn("relative flex-1 p-3 focus:outline-none md:p-6", assistantOpen && "lg:mr-[420px]")}>
           <h1 className="sr-only">{active.label}</h1>
           <div className={cn(active.key !== "today" && "overflow-x-auto rounded-xl border border-line bg-panel p-3 md:p-6")}>
             <Suspense fallback={<PageFallback />}>
               <PageComponent key={active.key} {...(active.props || {})} />
             </Suspense>
           </div>
-          <ChatBot />
+          <AssistantDock
+            open={assistantOpen}
+            onClose={() => toggleAssistant(false)}
+            page={active.key}
+            selection={location.search.replace(/^\?/, "").slice(0, 200)}
+          />
         </main>
 
         <footer className="border-t border-line px-4 py-3 text-center font-mono text-[11px] tracking-[0.08em] text-ink-3">

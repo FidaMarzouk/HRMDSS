@@ -15,3 +15,6 @@ Backend/knowledge/.index/
 HRMS_app/dist/
 *.log
 .DS_Store
+
+# Assistant eval reports (sandbox runs)
+Agent/eval/reports/

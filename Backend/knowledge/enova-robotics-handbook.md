@@ -1,6 +1,6 @@
 # Enova Robotics Employee Handbook
 
-> **About this document.** This handbook is the knowledge base of the ENOVA Assistant (the HRMS chatbot).
+> **About this document.** This handbook is the knowledge base of the ENOVA Assistant (the HRMS assistant).
 > Sections describing working hours, attendance, leave and approvals mirror the rules the HRMS enforces automatically. After editing this file, an administrator can refresh the assistant with `POST /api/chatbot/reindex`
 > (or simply restart the backend).
 
@@ -333,6 +333,35 @@ Remote work may be granted occasionally with your manager's agreement, for tasks
 require lab access. Agree on it in advance, remain reachable during working hours through the Inbox messages, and keep recording
 your attendance in the HRMS.
 
+## The ENOVA Assistant
+
+### What the assistant may do
+- The ENOVA Assistant answers questions about this handbook, the HRMS and your own data, and can **prepare** actions
+  you are allowed to take yourself: leave requests, answers to proposed dates, bookings, meetings, missions, answers to
+  invitations, punches and breaks, attendance corrections and messages.
+- It never carries out an action on its own. Every action is shown to you first, with the checks the HRMS ran, and
+  happens only when **you click Confirm**. You remain responsible for what you confirm, exactly as if you had done it
+  on the page yourself; the action is recorded in your name and follows the same rules and approval chain.
+- Decisions on other people's requests (approving or rejecting leave, time corrections or events) can be prepared
+  **only for the designated reviewer** of that request, and still need the reviewer's confirmation. The assistant
+  cannot give anyone rights their role does not have.
+- The assistant uses your own access: it sees what you could see in the HRMS, never salaries, and other people's
+  information only as far as your role allows (for example, managers see their team's leave).
+- Messages that look like attempts to make the assistant ignore its rules are answered in read-only mode: it can look
+  things up but prepares nothing.
+- Like any AI tool it can make mistakes. Check the card before confirming, and rely on the HRMS pages and this
+  handbook when in doubt.
+
+### What is recorded
+- Your conversation is kept so you can continue it; **New conversation** erases it from the assistant.
+- For each answer the HRMS records only **metadata**: the page you were on, which tools were used and how long they
+  took, whether actions were prepared and confirmed, the response time and your thumbs up or down. It does not keep
+  the text of your messages in these records. They are deleted after **90 days** and HR sees them only as totals.
+- Prepared actions (the cards) are kept for **30 days** for audit, and confirmed actions appear in the audit log like
+  any other change.
+- Your questions are processed by an external AI provider to produce the answers; do not paste passwords or sensitive
+  personal information about others into the assistant.
+
 ## Accounts and security
 
 ### Your HRMS account
@@ -377,8 +406,8 @@ your attendance in the HRMS.
   allowed to see, and the card shows nothing to someone who is not allowed to see it.
 - Next to each colleague, messages show their position and whether they are in: within your own department (or for
   HR and the CEO) with the time they arrived, otherwise only "in", "away" or "out".
-- Your conversation with the ENOVA Assistant is stored so you can see it later; you can clear it at any time from the
-  chat window.
+- Your conversation with the ENOVA Assistant is stored so you can continue it; **New conversation** in the assistant
+  panel erases it (see *The ENOVA Assistant › What is recorded*).
 
 ### Good security practices
 - Never share your password; HR will never ask for it.
