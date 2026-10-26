@@ -44,7 +44,7 @@ const definitions = [
     type: 'function',
     function: {
       name: 'get_my_leave_balance',
-      description: "Get the current user's leave balance: days accrued, days taken and days remaining, plus how many requests are awaiting approval.",
+      description: "Get the current user's leave balance for the current calendar year: days accrued this year, days taken this year and days remaining, plus how many requests are awaiting approval.",
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -109,9 +109,12 @@ const createTools = (userId) => {
       const balance = await updateUserLeaveBalance(userId);
       const awaitingApproval = await LeaveRequest.countDocuments({ employeeId: userId, status: { $in: IN_PROGRESS } });
       return {
+        year: balance.year,
         accruedDays: balance.totalAccruedDays,
         daysTaken: balance.daysTaken,
         remainingDays: balance.remainingDays,
+        annualCap: balance.annualCap,
+        note: 'Balances run by calendar year: unused days do not carry over and restart at 0 on 1 January.',
         requestsAwaitingApproval: awaitingApproval,
       };
     },

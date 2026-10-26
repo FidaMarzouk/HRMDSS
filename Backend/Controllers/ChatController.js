@@ -2,15 +2,57 @@ const ChatMessage = require('../Models/TeamChat');
 const User = require('../Models/User');
 const mongoose = require('mongoose');
 const { getIO } = require('../Middlewares/notificationService');
+const LeaveRequest = require('../Models/LeaveRequest');
+const CalendarEvent = require('../Models/CalendarEvent');
+const AttendanceCorrection = require('../Models/AttendanceCorrection');
+const inbox = require('../services/inbox');
+const policies = require('../services/policies');
+const { loadPresence, coarse } = require('../services/presence');
+const { FINAL_APPROVED, IN_PROGRESS } = require('../constants/leave');
+const { startOfDay } = require('../utils/time');
+
+const ATTACHABLE = ['leave', 'event', 'correction'];
+const ATTACHMENT_LABEL = { leave: 'leave request', event: 'calendar event', correction: 'time correction' };
+
+// Presence for chat partners: full detail inside the viewer's presence scope
+// (HR and the CEO: everyone; others: their department), coarse outside it.
+const presenceFor = async (viewer, people) => {
+  if (!people.length) return new Map();
+  const me = await User.findById(viewer.id).select('departmentId').lean();
+  const full = viewer.role === 'admin' || viewer.role === 'superAdmin';
+  const states = await loadPresence(people.map((p) => p._id));
+  return new Map(
+    people.map((p) => {
+      const id = String(p._id);
+      const state = states.get(id);
+      const inScope = full || (me?.departmentId && String(p.departmentId?._id || p.departmentId) === String(me.departmentId));
+      return [id, inScope ? { status: state.status, since: state.since } : coarse(state)];
+    })
+  );
+};
+exports.presenceFor = presenceFor;
 
 // Send a new message
 exports.sendMessage = async (req, res) => {
   try {
-    const { receiverId, message } = req.body;
+    const { receiverId, message = '', attachment } = req.body;
     const senderId = req.user.id;
-    
-    if (!receiverId || !message || !String(message).trim()) {
-      return res.status(400).json({ message: 'Receiver ID and message are required' });
+
+    if (!receiverId || (!String(message).trim() && !attachment)) {
+      return res.status(400).json({ message: 'Receiver ID and a message or a request card are required' });
+    }
+    // A card can only point to something the sender is allowed to see.
+    let card = null;
+    if (attachment) {
+      if (!ATTACHABLE.includes(attachment.kind) || !mongoose.isValidObjectId(attachment.id)) {
+        return res.status(400).json({ message: 'Unknown request to attach' });
+      }
+      const me = await User.findById(senderId).select('departmentId').lean();
+      const item = (await inbox.loadItems([attachment])).get(`${attachment.kind}:${attachment.id}`);
+      if (!item || !inbox.canSee(attachment.kind, item, req.user, me?.departmentId)) {
+        return res.status(404).json({ message: 'Request not found' });
+      }
+      card = { kind: attachment.kind, id: attachment.id };
     }
     if (!mongoose.isValidObjectId(receiverId) || !(await User.exists({ ...User.ACTIVE, _id: receiverId }))) {
       return res.status(404).json({ message: 'Recipient not found' });
@@ -23,7 +65,8 @@ exports.sendMessage = async (req, res) => {
     const newMessage = new ChatMessage({
       sender: senderId,
       receiver: receiverId,
-      message,
+      message: String(message).trim(),
+      ...(card ? { attachment: card } : {}),
       isRead: false
     });
     
@@ -247,7 +290,7 @@ exports.getConversations = async (req, res) => {
       });
       
       // Get user details (the partner may have been deleted)
-      const userDetails = await User.findById(partnerId).select('firstName lastName email profilePicture role');
+      const userDetails = await User.findById(partnerId).select('firstName lastName email profilePicture role position departmentId status').populate('departmentId', 'name');
       if (!userDetails || !lastMessageData) return null;
 
       return {
@@ -258,7 +301,11 @@ exports.getConversations = async (req, res) => {
         email: userDetails.email,
         profilePicture: userDetails.profilePicture,
         role: userDetails.role,
-        lastMessage: lastMessageData.message,
+        position: userDetails.position,
+        department: userDetails.departmentId?.name || null,
+        departmentId: userDetails.departmentId?._id || null,
+        archived: userDetails.status === 'archived',
+        lastMessage: lastMessageData.message || (lastMessageData.attachment?.kind ? `Shared a ${ATTACHMENT_LABEL[lastMessageData.attachment.kind]}` : ''),
         lastMessageDate: lastMessageData.createdAt,
         unreadCount: unreadCount
       };
@@ -268,10 +315,53 @@ exports.getConversations = async (req, res) => {
     
     // Sort by most recent message
     conversations.sort((a, b) => b.lastMessageDate - a.lastMessageDate);
+    const presence = await presenceFor(req.user, conversations.map((c) => ({ _id: c.userId, departmentId: c.departmentId })));
+    conversations.forEach((c) => {
+      c.presence = presence.get(String(c.userId)) || null;
+      delete c.departmentId;
+    });
     
     res.json(conversations);
   } catch (error) {
     console.error('Error fetching conversations:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// GET /api/chat/attachable?with=<userId>: requests the sender can share as a card
+// in this conversation: their own open requests, and the other person's
+// requests that wait on the sender's decision.
+exports.getAttachable = async (req, res) => {
+  try {
+    const me = String(req.user.id);
+    const other = mongoose.isValidObjectId(req.query.with) ? req.query.with : null;
+    const today = startOfDay(new Date());
+    const [myLeave, myEvents, myCorrections, theirLeave, theirCorrections, theirEvents] = await Promise.all([
+      LeaveRequest.find({ employeeId: me, $or: [{ status: { $in: IN_PROGRESS } }, { status: { $in: FINAL_APPROVED }, endDate: { $gte: today } }] }).sort({ startDate: 1 }).limit(10).select('_id').lean(),
+      CalendarEvent.find({ createdBy: me, status: { $ne: 'declined' }, endDateTime: { $gte: today } }).sort({ startDateTime: 1 }).limit(10).select('_id').lean(),
+      AttendanceCorrection.find({ userId: me, status: 'pending' }).limit(10).select('_id').lean(),
+      other ? LeaveRequest.find({ employeeId: other, status: { $in: IN_PROGRESS } }).limit(10).lean() : [],
+      other ? AttendanceCorrection.find({ userId: other, status: 'pending' }).limit(10).lean() : [],
+      other && policies.canReviewEvents(req.user) ? CalendarEvent.find({ createdBy: other, status: 'pending', endDateTime: { $gte: today } }).limit(10).select('_id').lean() : [],
+    ]);
+    const refs = [
+      ...theirLeave.filter((r) => policies.canReviewLeave(req.user, r)).map((r) => ({ kind: 'leave', id: r._id, theirs: true })),
+      ...theirCorrections.filter((c) => policies.canReviewCorrection(req.user, c)).map((c) => ({ kind: 'correction', id: c._id, theirs: true })),
+      ...theirEvents.map((e) => ({ kind: 'event', id: e._id, theirs: true })),
+      ...myLeave.map((r) => ({ kind: 'leave', id: r._id })),
+      ...myEvents.map((e) => ({ kind: 'event', id: e._id })),
+      ...myCorrections.map((c) => ({ kind: 'correction', id: c._id })),
+    ];
+    const viewer = { id: me, role: req.user.role };
+    const meDoc = await User.findById(me).select('departmentId').lean();
+    const items = await inbox.loadItems(refs);
+    res.json({
+      items: refs
+        .map((r) => ({ ...inbox.cardFor(r.kind, items.get(`${r.kind}:${String(r.id)}`), viewer, meDoc?.departmentId), theirs: Boolean(r.theirs) }))
+        .filter((c) => !c.missing && !c.hidden),
+    });
+  } catch (error) {
+    console.error('Error listing attachable requests:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

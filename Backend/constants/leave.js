@@ -35,6 +35,12 @@ const MONTHLY_ACCRUAL = {
   superAdmin: 2,
 };
 
+// Balances run by calendar year: unused days do not carry over (everyone
+// restarts at 0 on 1 January), and a year never earns more than this.
+// At today's rates a year earns 12 (employees) or 24 days, so the cap only
+// bites if the rates are raised.
+const ANNUAL_LEAVE_CAP = 24;
+
 // --- Decision support (Phase 3). These are checks shown to reviewers, not hard
 // blocks: a reviewer can still approve a request that fails one. Keep the
 // handbook (knowledge/enova-robotics-handbook.md) in sync if they change.
@@ -64,4 +70,5 @@ module.exports = {
   IN_PROGRESS,
   REJECTED,
   MONTHLY_ACCRUAL,
+  ANNUAL_LEAVE_CAP,
 };

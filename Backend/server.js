@@ -18,6 +18,7 @@ const cookieParser = require('cookie-parser');
 const cron = require('node-cron');
 const http = require('http');
 const { updateAllUsersLeaveBalance } = require('./Middlewares/leaveCalculationHelper');
+const { sendDigests } = require('./services/digest');
 const { initializeSocket } = require('./Middlewares/notificationService');
 const { markAbsentUsers } = require('./Controllers/attendanceController');
 const knowledgeIndex = require('./services/rag/knowledgeIndex');
@@ -38,6 +39,7 @@ const managerDashRoutes = require('./Routes/managerDashboardRoutes');
 const todayRoutes = require('./Routes/todayRoutes');
 const peopleRoutes = require('./Routes/peopleRoutes');
 const analyticsRoutes = require('./Routes/analyticsRoutes');
+const inboxRoutes = require('./Routes/inboxRoutes');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -66,6 +68,16 @@ cron.schedule('0 0 1 * *', async () => {
   await updateAllUsersLeaveBalance();
 }, { timezone: 'Africa/Tunis' });
 
+// Daily digest of held, low-urgency notifications at 09:00 on working days
+cron.schedule('0 9 * * 1-5', async () => {
+  try {
+    const { sent } = await sendDigests();
+    if (sent) console.log(`Sent ${sent} daily digest(s)`);
+  } catch (error) {
+    console.error('Error in digest job:', error);
+  }
+}, { timezone: 'Africa/Tunis' });
+
 // Mark absences at 22:00 every weekday
 cron.schedule('0 22 * * 1-5', async () => {
   try {
@@ -91,6 +103,7 @@ app.use('/api/employee', employeeDashRoutes);
 app.use('/api/manager', managerDashRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/inbox', inboxRoutes);
 app.use('/api', todayRoutes); // /api/today, /api/presence, /api/me/counts, /api/search
 
 // Unknown API routes

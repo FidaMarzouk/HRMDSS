@@ -41,6 +41,12 @@ const userSchema = new mongoose.Schema({
   archivedAt: Date,
   archivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   archiveReason: { type: String, maxlength: 500 },
+
+  // Personal settings. digest: low-urgency notifications are collected into
+  // one 09:00 summary on working days instead of arriving one by one.
+  preferences: {
+    digest: { type: Boolean, default: false },
+  },
 }, { timestamps: true });
 
 userSchema.index({ status: 1 });
