@@ -1,5 +1,5 @@
 /*
- * ENOVA Pulse design tokens.
+ * ENOVA design tokens.
  * Colours are RGB triplets so Tailwind can add opacity (bg-teal/10).
  * Light ("day shift") is the default; dark ("night shift") applies when
  * <html data-theme="dark">, or when no theme is forced and the OS prefers dark.

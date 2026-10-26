@@ -41,6 +41,7 @@ const todayRoutes = require('./Routes/todayRoutes');
 const peopleRoutes = require('./Routes/peopleRoutes');
 const analyticsRoutes = require('./Routes/analyticsRoutes');
 const inboxRoutes = require('./Routes/inboxRoutes');
+const assistantRoutes = require('./Routes/assistantRoutes');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -105,6 +106,7 @@ app.use('/api/manager', managerDashRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/inbox', inboxRoutes);
+app.use('/api/assistant', assistantRoutes);
 app.use('/api', todayRoutes); // /api/today, /api/presence, /api/me/counts, /api/search
 
 // Unknown API routes

@@ -23,7 +23,6 @@ const CalendarEvent = require('../Models/CalendarEvent');
 const Resource = require('../Models/Resource');
 const Notification = require('../Models/Notification');
 const TeamChat = require('../Models/TeamChat');
-const ChatbotMessage = require('../Models/chatbot.model');
 const { updateUserLeaveBalance, calculateAccruedLeaveDays } = require('../Middlewares/leaveCalculationHelper');
 const { countWorkingDays, isWeekend, startOfDay } = require('../utils/time');
 
@@ -185,7 +184,7 @@ async function main() {
   }
   if (RESET) {
     console.log(`Wiping HRMS collections in database "${dbName}"…`);
-    for (const Model of [User, Department, LeaveRequest, Attendance, CalendarEvent, Resource, Notification, TeamChat, ChatbotMessage]) {
+    for (const Model of [User, Department, LeaveRequest, Attendance, CalendarEvent, Resource, Notification, TeamChat]) {
       await Model.deleteMany({});
     }
   }

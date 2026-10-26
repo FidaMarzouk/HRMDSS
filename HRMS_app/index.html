@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/src/assets/enova_logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ENOVA Pulse · HR</title>
+  <title>ENOVA · HR</title>
   <meta name="description" content="HR management and decision support for Enova Robotics" />
   <meta name="theme-color" content="#EEF2F1" />
   <script>
     // Apply the saved theme before first paint (see src/theme/ThemeProvider.jsx).
     try {
-      var mode = localStorage.getItem("pulse-theme");
-      if (mode === "shift") mode = localStorage.getItem("pulse-theme-shift");
+      var mode = localStorage.getItem("enova-theme");
+      if (mode === "shift") mode = localStorage.getItem("enova-theme-shift");
       if (mode === "light" || mode === "dark") document.documentElement.setAttribute("data-theme", mode);
     } catch (e) {}
   </script>
@@ -32,7 +32,7 @@
 </head>
 <body>
   <div id="root">
-    <div class="boot" role="status"><i></i><span>ENOVA PULSE · LOADING</span></div>
+    <div class="boot" role="status"><i></i><span>ENOVA · LOADING</span></div>
   </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>

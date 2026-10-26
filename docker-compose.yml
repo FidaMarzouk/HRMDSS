@@ -1,0 +1,59 @@
+# ENOVA Assistant agent, isolated (daily use: the HRMS backend runs on the host).
+#   docker compose up -d --build
+# The agent container sits on an internal network with no internet and no HR
+# database. It can only reach its own state database and the gateway, which
+# allow-lists Groq, the HRMS assistant tool API and LangSmith. The backend
+# reaches the agent through the gateway on 127.0.0.1:8090 (AGENT_URL).
+name: enova-agent
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: [/tmp]
+  pids_limit: 200
+  restart: unless-stopped
+
+services:
+  agent:
+    <<: *hardened
+    build: ./Agent
+    env_file: ./Agent/.env
+    environment:
+      BACKEND_URL: http://gateway:8443/backend
+      GROQ_BASE_URL: http://gateway:8443/groq
+      LANGSMITH_ENDPOINT: http://gateway:8443/langsmith
+      AGENT_MONGO_URI: mongodb://agent-mongo:27017
+    networks: [agent_net]
+    depends_on: [agent-mongo, gateway]
+    mem_limit: 512m
+    cpus: 1.0
+
+  agent-mongo:
+    image: mongo:7
+    networks: [agent_net]
+    volumes: [agent_state:/data/db]
+    restart: unless-stopped
+
+  gateway:
+    <<: *hardened
+    build: ./Agent
+    command: ["node", "gateway/server.js"]
+    environment:
+      AGENT_TARGET: http://agent:8090
+      BACKEND_TARGET: http://host.docker.internal:8081
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [agent_net, edge]
+    ports: ["127.0.0.1:8090:8090"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/health"]
+      interval: 15s
+    mem_limit: 128m
+
+networks:
+  agent_net:
+    internal: true
+  edge: {}
+
+volumes:
+  agent_state: {}

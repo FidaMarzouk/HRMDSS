@@ -19,6 +19,12 @@ const authMiddleware = (req, res, next) => {
     return res.status(401).json({ message: expired ? 'Session expired.' : 'Invalid token.' });
   }
 
+  // Tokens delegated to the assistant's agent service only work on the
+  // assistant tool API (services/assistant/delegation.js).
+  if (result.user.scope) {
+    return res.status(401).json({ message: 'Invalid token.' });
+  }
+
   // Archiving ends a session at once, before the token would expire.
   if (accountStatus.isArchived(result.user.id)) {
     return res.status(401).json({ message: 'This account has been archived.' });

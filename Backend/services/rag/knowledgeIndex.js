@@ -83,6 +83,8 @@ const doBuild = async () => {
   }
 
   Object.assign(state, { chunks, vectors, bm25, builtAt: new Date() });
+  // All chunks may come from the cache: load the model now so the first question doesn't wait for it.
+  if (vectors) embedder.warm();
   const stats = {
     chunks: chunks.length,
     files: [...new Set(chunks.map((c) => c.file))],
@@ -121,7 +123,9 @@ const search = async (query, k = 5) => {
   lexical.forEach((r, rank) => addRank(r.index, rank));
 
   const cosines = new Map();
-  if (state.vectors) {
+  // Never make a question wait for the model to load (or download): keyword results until it is ready.
+  if (state.vectors && !embedder.isReady()) embedder.warm();
+  if (state.vectors && embedder.isReady()) {
     try {
       const [queryVector] = await embedder.embed([query]);
       const dense = state.vectors

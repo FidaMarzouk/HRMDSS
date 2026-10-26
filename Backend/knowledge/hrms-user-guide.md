@@ -1,6 +1,6 @@
 # HRMS User Guide
 
-> How to use the Enova Robotics HRMS (ENOVA Pulse), screen by screen. Company rules (hours, leave entitlement,
+> How to use the Enova Robotics HRMS (ENOVA), screen by screen. Company rules (hours, leave entitlement,
 > approvals) are in the Employee Handbook; this guide explains where to click.
 
 ## Getting started
@@ -260,16 +260,51 @@ The ENOVA Assistant answers from two files on the server: `Backend/knowledge/eno
 `Backend/knowledge/hrms-user-guide.md`. After editing them, restart the backend or call
 `POST /api/chatbot/reindex` as an administrator.
 
-## ENOVA Assistant (chatbot)
-- Click the robot button in the bottom-right corner of any page, or type a question in the command palette (Ctrl K)
-  and choose *Ask the ENOVA Assistant*.
-- Ask about company policies ("How is leave counted?"), how to use the HRMS ("How do I book a robot?") or your
-  own data ("How many leave days do I have left?", "What meetings do I have this week?",
-  "What did my attendance look like this week?").
-- Answers about policies show the handbook sections they come from. The assistant can only see **your own**
-  leave, attendance, calendar and profile; it cannot see other people's data or any salary.
-- Click a suggestion chip to ask it directly. Use the trash icon to clear your conversation history.
-- If the AI service is unavailable, the assistant shows the most relevant handbook passages instead.
+## ENOVA Assistant
+### Open the assistant
+- Click the robot button in the top bar of any page; the assistant opens as a panel on the right (full screen on a
+  phone) and stays open as you move between pages. You can also type a question in the command palette (Ctrl K) and
+  choose *Ask the ENOVA Assistant*.
+- The assistant knows which page you are on, so on **Leave** it suggests leave actions and on **Calendar** bookings.
+  Click a suggestion to ask it directly.
+- **New conversation** (top of the panel) starts over: the assistant forgets the previous conversation and any action
+  you had not confirmed.
+
+### Ask questions
+- Company policies ("How is leave counted?"), how to use the HRMS ("How do I book a robot?") and your own data ("How
+  many leave days do I have left?", "What meetings do I have this week?", "Did I forget to punch out this week?").
+- Answers about policies show the handbook sections they come from.
+- Managers can also ask about their team's leave; managers, HR and the CEO can ask who is in and for the signals
+  shown on Analytics (managers for their team).
+- Ask in English or French; it answers in your language.
+
+### Let it prepare actions
+The assistant can prepare, on your behalf, things you could do yourself in the HRMS:
+
+| Area | What it can prepare |
+|---|---|
+| Leave | a leave request (with your balance, the notice period, overlaps and team coverage checked first); your answer to dates proposed by your reviewer |
+| Calendar | a booking of a robot, room or equipment; a meeting (it finds a free room and your colleagues); a mission; your answer to an invitation |
+| Time | punch in or out, start or end a break; a correction request for a past day |
+| Inbox | a message to a colleague |
+| Reviewers | approve or reject a leave request or a time correction **that waits on you**; HR can approve or decline events |
+
+- Nothing happens until you confirm. A prepared action appears as a **card** listing what will be done and the
+  checks it ran (green: fine, amber: worth knowing, red: will be refused). Click **Confirm** to carry it out, or
+  **Cancel** to drop it. After confirming, the assistant tells you the result.
+- A card expires after 30 minutes, or when you start a new conversation. You can keep chatting while a card waits
+  and still confirm it later, until it expires.
+- The assistant only acts as you, with your role's rights: it cannot approve or reject a request unless you are the
+  designated reviewer for it, and it refuses to prepare a decision while dates you proposed are still waiting for an
+  answer.
+- If something is ambiguous (two colleagues with the same name, no time given, no free room), it asks you first.
+
+### Rate the answers
+- Use the thumbs under an answer to say whether it helped. HR sees these counts, not the conversation.
+
+### When it is unavailable
+- If the AI service is busy, the assistant asks you to try again in a few seconds. If it is down, it answers policy
+  questions from the most relevant handbook passages and cannot prepare actions; use the pages directly.
 
 ## Troubleshooting
 - **Sent back to the login page:** your 5-hour session expired, or you were signed out from another device or after a
@@ -282,5 +317,7 @@ The ENOVA Assistant answers from two files on the server: `Backend/knowledge/eno
 - **Leave request refused for insufficient balance:** check your balance on the Leave form; days are counted
   Monday–Friday only, and balances restart at 0 on 1 January.
 - **A time record is wrong:** use **Fix…** on the Time page (up to 31 days back).
+- **The assistant's card says Expired:** it waited more than 30 minutes or you started a new conversation; ask
+  again.
 - **A booking is refused:** another confirmed booking or maintenance is in the way; the form shows which one.
 - **Wrong personal information (department, position, hire date):** contact HR at hr@enovarobotics.eu.
