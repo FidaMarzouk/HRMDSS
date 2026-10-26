@@ -9,7 +9,7 @@ router.use(authMiddleware);
 // Colleagues the current user can message (public directory fields only)
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.user.id } })
+    const users = await User.find({ ...User.ACTIVE, _id: { $ne: req.user.id } })
       .select('firstName lastName email profilePicture role position departmentId')
       .populate('departmentId', 'name');
     res.json(users);

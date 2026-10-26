@@ -148,7 +148,7 @@ const handleEventNotifications = async (eventData, user, userId) => {
 
     // 3. Send notifications to department users if event visibility is department-wide
     if (eventData.visibility === 'department') {
-      const departmentUsers = await User.find({ 
+      const departmentUsers = await User.find({ ...User.ACTIVE, 
         departmentId: user.departmentId, 
         _id: { $ne: userId } 
       });
@@ -643,7 +643,7 @@ exports.checkResourceAvailability = async (req, res) => {
 
 exports.getUsersInvolved = async (req, res) => {
   try {
-    const users = await User.find()
+    const users = await User.find(User.ACTIVE)
       .select('firstName lastName email position role departmentId profilePicture')
       .populate({
         path: "departmentId",

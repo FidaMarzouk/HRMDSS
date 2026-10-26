@@ -19,7 +19,7 @@ const loadMe = (req) => User.findById(req.user.id).select('firstName role depart
 
 // People in the user's scope with today's status, grouped by department.
 const computePresence = async (user, me, now = new Date()) => {
-  const people = await User.find(policies.presenceScope(user, me?.departmentId))
+  const people = await User.find({ ...User.ACTIVE, ...policies.presenceScope(user, me?.departmentId) })
     .select('firstName lastName position role profilePicture departmentId')
     .populate('departmentId', 'name')
     .lean();
@@ -206,7 +206,7 @@ exports.search = async (req, res) => {
   try {
     const words = String(req.query.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
     if (words.join('').length < 2) return res.json({ people: [] });
-    const people = await User.find({
+    const people = await User.find({ ...User.ACTIVE,
       $and: words.map((w) => {
         const rx = new RegExp(escapeRegex(w), 'i');
         return { $or: [{ firstName: rx }, { lastName: rx }, { position: rx }, { email: rx }] };

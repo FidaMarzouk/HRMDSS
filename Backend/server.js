@@ -22,6 +22,7 @@ const { initializeSocket } = require('./Middlewares/notificationService');
 const { markAbsentUsers } = require('./Controllers/attendanceController');
 const knowledgeIndex = require('./services/rag/knowledgeIndex');
 const { resumePendingNotifications } = require('./services/leaveDecisions');
+const accountStatus = require('./services/accountStatus');
 const authRoutes = require('./Routes/authRoutes');
 const userRoutes = require('./Routes/userRoutes');
 const leaveRequestRoutes = require('./Routes/leaveRequestRoutes');
@@ -35,6 +36,7 @@ const hrDashRoutes = require('./Routes/hrDashboardRoutes');
 const employeeDashRoutes = require('./Routes/employeeDashboardRoutes');
 const managerDashRoutes = require('./Routes/managerDashboardRoutes');
 const todayRoutes = require('./Routes/todayRoutes');
+const peopleRoutes = require('./Routes/peopleRoutes');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -86,6 +88,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/hr', hrDashRoutes);
 app.use('/api/employee', employeeDashRoutes);
 app.use('/api/manager', managerDashRoutes);
+app.use('/api/people', peopleRoutes);
 app.use('/api', todayRoutes); // /api/today, /api/presence, /api/me/counts, /api/search
 
 // Unknown API routes
@@ -113,6 +116,7 @@ app.use((err, req, res, next) => {
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('Connected to MongoDB');
+    await accountStatus.load();
     // Leave decisions whose undo window ended while the server was down.
     const pending = await resumePendingNotifications();
     if (pending) console.log(`Resumed ${pending} pending leave decision notification(s)`);

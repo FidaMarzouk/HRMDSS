@@ -44,7 +44,7 @@ exports.getHRDashboardData = async (req, res) => {
         endDate = today; 
       }
     // Get basic company stats
-    const totalEmployees = await User.countDocuments();
+    const totalEmployees = await User.countDocuments(User.ACTIVE);
     const totalDepartments = await Department.countDocuments();
     const pendingLeaveRequests = await LeaveRequest.countDocuments({ status: 'Pending' });
     
@@ -326,7 +326,7 @@ async function getLeaveStatusDistribution() {
 }
 
 async function getLeaveDaysUsageStats() {
-  const users = await User.find({ 
+  const users = await User.find({ ...User.ACTIVE, 
     leaveRequestAllowed: { $exists: true },
     remainingLeaveDays: { $exists: true }
   });
@@ -438,7 +438,7 @@ async function getSalaryDistribution() {
   const salaryRanges = [];
   
   for (const range of ranges) {
-    const count = await User.countDocuments({
+    const count = await User.countDocuments({ ...User.ACTIVE,
       salary: { $gte: range.min, $lte: range.max }
     });
     
@@ -460,10 +460,10 @@ async function getSalaryDistribution() {
 
 async function getHeadcountTrend(startDate) {
   // Get current headcount
-  const currentHeadcount = await User.countDocuments({ role: { $ne: 'superAdmin' } });
+  const currentHeadcount = await User.countDocuments({ ...User.ACTIVE, role: { $ne: 'superAdmin' } });
   
   // Get users who joined after the start date
-  const newHires = await User.countDocuments({
+  const newHires = await User.countDocuments({ ...User.ACTIVE,
     hireDate: { $gte: startDate }
   });
   
@@ -475,8 +475,8 @@ async function getHeadcountTrend(startDate) {
 }
 
 async function getManagerEmployeeRatio() {
-  const managerCount = await User.countDocuments({ role: 'manager' });
-  const employeeCount = await User.countDocuments({ role: 'employee' });
+  const managerCount = await User.countDocuments({ ...User.ACTIVE, role: 'manager' });
+  const employeeCount = await User.countDocuments({ ...User.ACTIVE, role: 'employee' });
   
   return {
     managerCount,

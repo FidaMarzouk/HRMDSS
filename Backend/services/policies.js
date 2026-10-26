@@ -55,8 +55,22 @@ const presenceScope = (user, departmentId) => {
   return departmentId ? { departmentId } : { _id: user.id };
 };
 
+/**
+ * Whose profile a user may open: HR and the CEO everyone; a manager their
+ * direct reports and their department; everyone themselves.
+ */
+const canSeePerson = (user, target, viewerDepartmentId) => {
+  if (user.role === 'admin' || user.role === 'superAdmin') return true;
+  const me = String(user.id);
+  if (idOf(target._id) === me) return true;
+  if (user.role !== 'manager') return false;
+  if (idOf(target.managerId) === me) return true;
+  return Boolean(viewerDepartmentId && target.departmentId && idOf(target.departmentId) === idOf(viewerDepartmentId));
+};
+
 module.exports = {
   idOf,
+  canSeePerson,
   LEAVE_REVIEW_PATH,
   leaveQueueFilter,
   canReviewLeave,

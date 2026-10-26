@@ -1,4 +1,5 @@
 const User = require('../Models/User');
+const { skillNames } = require('../utils/skills');
 const Attendance = require('../Models/Attendance');
 const LeaveRequest = require('../Models/LeaveRequest');
 const Department = require('../Models/Department');
@@ -188,7 +189,7 @@ async function getTeamInfo(userId) {
       id: department.managerId._id,
       name: `${department.managerId.firstName} ${department.managerId.lastName}`,
       position: department.managerId.position,
-      skills: department.managerId.skills || [],
+      skills: skillNames(department.managerId.skills),
       profilePicture: department.managerId.profilePicture || null
     } : null;
 
@@ -199,7 +200,7 @@ async function getTeamInfo(userId) {
         id: member._id,
         name: `${member.firstName} ${member.lastName}`,
         position: member.position,
-        skills: member.skills || [],
+        skills: skillNames(member.skills),
         profilePicture: member.profilePicture || null
       }));
 

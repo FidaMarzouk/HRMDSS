@@ -1,5 +1,5 @@
 const express = require('express');
-const { createUser, updateUser, deleteUser, getUsers, getRemainingLeaveDays, updateProfile, getProfile, getCurrentUser } = require('../Controllers/userController');
+const { createUser, updateUser, getUsers, getRemainingLeaveDays, updateProfile, getProfile, getCurrentUser } = require('../Controllers/userController');
 const authMiddleware = require('../Middlewares/authMiddleware');
 const roleMiddleware = require('../Middlewares/roleMiddleware');
 const upload = require('../Middlewares/upload');
@@ -18,6 +18,6 @@ router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'superAdmin'
 // Administration (admin only)
 router.post('/', authMiddleware, roleMiddleware('admin'), upload.single('profilePicture'), addUserValidationRules, validate, createUser);
 router.put('/:id', authMiddleware, roleMiddleware('admin'), upload.single('profilePicture'), updateUserValidationRules, validate, updateUser);
-router.delete('/:id', authMiddleware, roleMiddleware('admin'), deleteUser);
+// People are archived, never deleted: POST /api/people/:id/archive
 
 module.exports = router;

@@ -98,7 +98,7 @@ const validateLeaveRequest = async (userId, startDate, endDate) => {
  */
 const updateAllUsersLeaveBalance = async () => {
   try {
-    const users = await User.find().select('_id').lean();
+    const users = await User.find(User.ACTIVE).select('_id').lean();
     for (const user of users) {
       await updateUserLeaveBalance(user._id);
     }

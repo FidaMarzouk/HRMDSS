@@ -12,7 +12,7 @@ exports.sendMessage = async (req, res) => {
     if (!receiverId || !message || !String(message).trim()) {
       return res.status(400).json({ message: 'Receiver ID and message are required' });
     }
-    if (!mongoose.isValidObjectId(receiverId) || !(await User.exists({ _id: receiverId }))) {
+    if (!mongoose.isValidObjectId(receiverId) || !(await User.exists({ ...User.ACTIVE, _id: receiverId }))) {
       return res.status(404).json({ message: 'Recipient not found' });
     }
     if (String(message).length > 5000) {

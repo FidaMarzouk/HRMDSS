@@ -22,7 +22,7 @@ exports.login = async (req, res) => {
     }
 
     // Same response for unknown email and wrong password, to avoid account enumeration.
-    const user = await User.findOne({ email: String(email).trim() }).select('+password');
+    const user = await User.findOne({ email: String(email).trim(), ...User.ACTIVE }).select('+password');
     const isMatch = user ? await bcrypt.compare(password, user.password) : false;
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password.' });
@@ -71,7 +71,8 @@ exports.requestPasswordReset = async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    const user = await User.findOne({ email: String(email).trim() });
+    // Archived accounts get the generic answer and no email.
+    const user = await User.findOne({ email: String(email).trim(), ...User.ACTIVE });
     if (!user) {
       return res.status(200).json(genericResponse);
     }
@@ -99,6 +100,7 @@ exports.requestPasswordReset = async (req, res) => {
 
 const findUserByResetToken = (token) =>
   User.findOne({
+    ...User.ACTIVE,
     passwordResetTokenHash: hashToken(String(token)),
     passwordResetExpires: { $gt: new Date() }
   }).select('+passwordResetTokenHash +passwordResetExpires');

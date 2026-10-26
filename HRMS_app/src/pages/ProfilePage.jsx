@@ -48,7 +48,7 @@ const ProfilePage = () => {
             phone: userData.phone || "",
             position: userData.position || "",
             birthdate: toDateInputValue(userData.birthdate),
-            skills: userData.skills || [],
+            skills: (userData.skills || []).map((s) => (typeof s === "string" ? s : s.name)),
             profilePicture: userData.profilePicture || "",
             currentPassword: "",
             newPassword: "",

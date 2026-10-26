@@ -74,8 +74,9 @@ const updateUserValidationRules = [
     .optional()
     .isEmail().withMessage('Invalid personal email format.'),
   
+  // Empty = keep the current salary (the edit form never pre-fills it).
   body('salary')
-    .optional()
+    .optional({ values: 'falsy' })
     .isFloat({ min: 0.01 }).withMessage('Salary must be a positive number greater than zero.'),
 
     body('hireDate')
