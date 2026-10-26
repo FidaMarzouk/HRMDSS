@@ -8,7 +8,7 @@ import { StatusPill } from "../../components/ui/status-pill";
 import { formatDay, toDayKey } from "../../lib/dates";
 import { cn } from "../../lib/utils";
 
-// The sections of the former manager dashboard, drawn with the Pulse marks (tabs in tabs.js).
+// The sections of the former manager dashboard, drawn with the ENOVA marks (tabs in tabs.js).
 
 const EVENT_TYPES = { meeting: "Meetings", mission: "Missions", resourceReservation: "Reservations" };
 const shortDay = (d) => formatDay(d, { day: "numeric", month: "short" });

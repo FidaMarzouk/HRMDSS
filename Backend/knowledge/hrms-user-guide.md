@@ -1,6 +1,6 @@
 # HRMS User Guide
 
-> How to use the Enova Robotics HRMS (ENOVA Pulse), screen by screen. Company rules (hours, leave entitlement,
+> How to use the Enova Robotics HRMS (ENOVA), screen by screen. Company rules (hours, leave entitlement,
 > approvals) are in the Employee Handbook; this guide explains where to click.
 
 ## Getting started

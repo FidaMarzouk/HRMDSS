@@ -74,7 +74,7 @@ export default function AppShell() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(() => {
     try {
-      return localStorage.getItem("pulse-assistant") === "open";
+      return localStorage.getItem("enova-assistant") === "open";
     } catch {
       return false;
     }
@@ -83,7 +83,7 @@ export default function AppShell() {
     setAssistantOpen((prev) => {
       const next = typeof value === "boolean" ? value : !prev;
       try {
-        localStorage.setItem("pulse-assistant", next ? "open" : "closed");
+        localStorage.setItem("enova-assistant", next ? "open" : "closed");
       } catch {
         // per-device convenience only
       }
@@ -207,7 +207,7 @@ export default function AppShell() {
         )}
       >
         <div className={cn("relative flex items-center gap-2 px-1", showLabels ? "justify-between" : "justify-center")}>
-          <Link to={pathFor(DEFAULT_PAGE)} aria-label="ENOVA Pulse, Today">
+          <Link to={pathFor(DEFAULT_PAGE)} aria-label="ENOVA, Today">
             {showLabels ? (
               <img src={enovaWordmark} className="logo-on-theme h-8 w-auto max-w-[160px] object-contain" alt="" />
             ) : (
@@ -340,7 +340,7 @@ export default function AppShell() {
         </main>
 
         <footer className="border-t border-line px-4 py-3 text-center font-mono text-[11px] tracking-[0.08em] text-ink-3">
-          ENOVA PULSE · © {now.getFullYear()} ENOVA ROBOTICS
+          ENOVA · © {now.getFullYear()} ENOVA ROBOTICS
         </footer>
       </div>
     </div>

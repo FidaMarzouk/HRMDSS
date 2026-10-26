@@ -1,4 +1,4 @@
-// Colours come only from the ENOVA Pulse tokens in src/styles/tokens.css, so every
+// Colours come only from the ENOVA tokens in src/styles/tokens.css, so every
 // class follows the light/dark theme. The default Tailwind palette is replaced,
 // not extended: a class like `text-gray-400` produces no CSS on purpose.
 const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;

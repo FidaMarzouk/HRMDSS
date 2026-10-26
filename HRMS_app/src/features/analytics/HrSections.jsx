@@ -4,7 +4,7 @@ import { Columns, HeatStrip } from "../../components/marks/Columns";
 import { TONE, fmt } from "../../components/marks/palette";
 import { formatDay } from "../../lib/dates";
 
-// The sections of the former HR dashboard, drawn with the Pulse marks (tabs in tabs.js).
+// The sections of the former HR dashboard, drawn with the ENOVA marks (tabs in tabs.js).
 
 const RESOURCE_TYPES = { robot: "Robots", prototype: "Prototypes", meetingRoom: "Meeting rooms", desktop: "Desktops", office: "Offices", toolKit: "Tool kits", testingEquipment: "Testing equipment" };
 const NOTIFICATION_TYPES = {

@@ -15,7 +15,7 @@ const buttonVariants = cva(
         ghost: "text-ink-2 hover:bg-sunk hover:text-ink",
         danger: "border border-red/20 bg-red/10 text-red hover:bg-red/15",
         link: "h-auto px-0 text-teal underline-offset-4 hover:underline",
-        // Names used before the Pulse redesign
+        // Names used before the redesign
         default: "bg-teal text-on-accent font-semibold hover:bg-teal-hi",
         outline: "border border-edge bg-transparent text-ink hover:border-teal hover:bg-sunk",
         destructive: "border border-red/20 bg-red/10 text-red hover:bg-red/15",
