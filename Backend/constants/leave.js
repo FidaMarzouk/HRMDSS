@@ -35,7 +35,29 @@ const MONTHLY_ACCRUAL = {
   superAdmin: 2,
 };
 
+// --- Decision support (Phase 3). These are checks shown to reviewers, not hard
+// blocks: a reviewer can still approve a request that fails one. Keep the
+// handbook (knowledge/enova-robotics-handbook.md) in sync if they change.
+
+// Minimum notice, in calendar days between submission and the first day off.
+const NOTICE_DAYS = 14;
+// Leave that cannot be planned ahead is exempt from the notice check.
+const NOTICE_EXEMPT_TYPES = ['Sick Leave', 'Emergency Leave'];
+
+// Most people from one department who may be away on the same working day,
+// when the department has no explicit `coverageLimit`: 25% of the team (rounded),
+// at least 1. Only days inside a request count against it.
+const DEFAULT_COVERAGE_RATIO = 0.25;
+
+// How long a reviewer can undo an approval or rejection. Notifications wait
+// until it ends. The UI shows 8 s; the extra 2 s absorb network latency.
+const UNDO_WINDOW_MS = 10_000;
+
 module.exports = {
+  NOTICE_DAYS,
+  NOTICE_EXEMPT_TYPES,
+  DEFAULT_COVERAGE_RATIO,
+  UNDO_WINDOW_MS,
   LEAVE_TYPES,
   LEAVE_STATUSES,
   FINAL_APPROVED,

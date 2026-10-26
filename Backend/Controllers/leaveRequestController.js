@@ -2,9 +2,13 @@ const mongoose = require("mongoose");
 const LeaveRequest = require("../Models/LeaveRequest");
 const User = require("../Models/User");
 const leaveHelper = require('../Middlewares/leaveCalculationHelper');
+const Department = require("../Models/Department");
 const { sendNotificationToUser, sendNotificationToRole } = require('../Middlewares/notificationService');
 const { LEAVE_TYPES, REJECTED } = require('../constants/leave');
-const { toCompanyDate } = require('../utils/time');
+const { toCompanyDate, startOfDay, countWorkingDays } = require('../utils/time');
+const policies = require('../services/policies');
+const rules = require('../services/leaveRules');
+const decisions = require('../services/leaveDecisions');
 
 const formatRange = (request) =>
   `${new Date(request.startDate).toLocaleDateString()} to ${new Date(request.endDate).toLocaleDateString()}`;
@@ -45,31 +49,6 @@ const hasOverlappingRequest = async (userId, startDate, endDate) => {
   });
   return Boolean(overlapping);
 };
-
-// Load the request for an approval action, enforcing existence and scope.
-const loadRequestForAction = async (req, res, scopeCheck) => {
-  if (!mongoose.isValidObjectId(req.params.id)) {
-    res.status(404).json({ message: 'Leave request not found' });
-    return null;
-  }
-  const request = await LeaveRequest.findById(req.params.id);
-  if (!request) {
-    res.status(404).json({ message: 'Leave request not found' });
-    return null;
-  }
-  if (request.employeeId.toString() === req.user.id) {
-    res.status(403).json({ message: 'You cannot review your own leave request' });
-    return null;
-  }
-  if (scopeCheck && !scopeCheck(request)) {
-    res.status(403).json({ message: 'You are not allowed to review this leave request' });
-    return null;
-  }
-  return request;
-};
-
-const invalidTransition = (res, request) =>
-  res.status(409).json({ message: `This request can no longer be changed (current status: ${request.status}).` });
 
 exports.getApprover = async (req, res) => {
   try {
@@ -160,7 +139,8 @@ exports.createLeaveRequest = async (req, res) => {
       endDate: end,
       reason,
       status: "Pending",
-      createdBy: CREATED_BY[user.role]
+      createdBy: CREATED_BY[user.role],
+      history: [{ action: 'submitted', status: 'Pending', by: userId, byRole: user.role }]
     });
 
     const notification = {
@@ -195,192 +175,153 @@ exports.createLeaveRequest = async (req, res) => {
   }
 };
 
-// Manager approves a request assigned to them
-exports.managerApproveRequest = async (req, res) => {
+// --- Decisions ------------------------------------------------------------------
+// One handler for every reviewer: the role rules live in services/policies.js
+// and the state changes (with the undo window) in services/leaveDecisions.js.
+
+const sendError = (res, error, context) => {
+  if (error instanceof decisions.DecisionError) return res.status(error.status).json({ message: error.message });
+  console.error(`Error in ${context}:`, error);
+  return res.status(500).json({ message: 'Server error' });
+};
+
+const findRequest = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(404).json({ message: 'Leave request not found' });
+    return null;
+  }
+  const request = await LeaveRequest.findById(req.params.id);
+  if (!request) res.status(404).json({ message: 'Leave request not found' });
+  return request;
+};
+
+const DECISION_MESSAGES = {
+  manager: { approve: 'Request approved by manager', reject: 'Request rejected by manager' },
+  admin: { approve: 'Request approved by admin', reject: 'Request rejected by admin' },
+  superAdmin: { approve: 'Request approved by CEO', reject: 'Request rejected by CEO' },
+};
+
+const decisionHandler = (action) => async (req, res) => {
   try {
-    const request = await loadRequestForAction(req, res, (r) => r.managerId.toString() === req.user.id);
+    const request = await findRequest(req, res);
     if (!request) return;
-    if (request.status !== 'Pending') return invalidTransition(res, request);
-
-    request.status = 'Manager Approved';
-    await request.save();
-
-    const [employee, manager] = await Promise.all([
-      User.findById(request.employeeId).select('firstName lastName'),
-      User.findById(req.user.id).select('firstName lastName')
-    ]);
-
-    await sendNotificationToUser(request.employeeId, {
-      title: 'Leave Request Approved by Manager',
-      message: `Your leave request from ${formatRange(request)} has been approved by ${fullName(manager)} and is awaiting final HR approval.`,
-      type: 'leave_approved',
-      relatedId: request._id
+    const updated = await decisions.decide({ request, user: req.user, action, note: req.body?.note });
+    res.status(200).json({
+      message: DECISION_MESSAGES[req.user.role][action],
+      request: updated,
+      undoUntil: updated.decision.undoUntil,
     });
-    await sendNotificationToRole('admin', {
-      title: 'Leave Request Approved by Manager',
-      message: `${fullName(manager)} has approved a leave request for ${fullName(employee)} from ${formatRange(request)}.`,
-      type: 'leave_approved',
-      relatedId: request._id
-    });
-
-    res.status(200).json({ message: 'Request approved by manager', request });
   } catch (error) {
-    console.error('Error in managerApproveRequest:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, error, `${action} leave request`);
   }
 };
 
-// Manager rejects a request assigned to them
-exports.managerRejectRequest = async (req, res) => {
+// Routes keep their role-specific paths; roleMiddleware already checks the role.
+exports.managerApproveRequest = decisionHandler('approve');
+exports.managerRejectRequest = decisionHandler('reject');
+exports.adminApproveRequest = decisionHandler('approve');
+exports.adminRejectRequest = decisionHandler('reject');
+exports.superAdminApproveRequest = decisionHandler('approve');
+exports.superAdminRejectRequest = decisionHandler('reject');
+
+// POST /:id/undo: the reviewer takes back their decision within the undo window.
+exports.undoDecision = async (req, res) => {
   try {
-    const request = await loadRequestForAction(req, res, (r) => r.managerId.toString() === req.user.id);
-    if (!request) return;
-    if (request.status !== 'Pending') return invalidTransition(res, request);
-
-    request.status = 'Manager Rejected';
-    await request.save();
-
-    const [employee, manager] = await Promise.all([
-      User.findById(request.employeeId).select('firstName lastName'),
-      User.findById(req.user.id).select('firstName lastName')
-    ]);
-
-    await sendNotificationToUser(request.employeeId, {
-      title: 'Leave Request Rejected by Manager',
-      message: `Your leave request from ${formatRange(request)} has been rejected by ${fullName(manager)}.`,
-      type: 'leave_rejected',
-      relatedId: request._id
-    });
-    await sendNotificationToRole('admin', {
-      title: 'Leave Request Rejected by Manager',
-      message: `${fullName(manager)} has rejected a leave request for ${fullName(employee)} from ${formatRange(request)}.`,
-      type: 'leave_rejected',
-      relatedId: request._id
-    });
-
-    res.status(200).json({ message: 'Request rejected by manager', request });
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Leave request not found' });
+    const request = await decisions.undo({ requestId: req.params.id, user: req.user });
+    res.status(200).json({ message: 'Decision undone', request });
   } catch (error) {
-    console.error('Error in managerRejectRequest:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, error, 'undoDecision');
   }
 };
 
-// Admin gives final approval to employee and manager requests (admin requests go to the CEO)
-exports.adminApproveRequest = async (req, res) => {
+// POST /:id/counter-propose { startDate, endDate, note }
+exports.counterPropose = async (req, res) => {
   try {
-    const request = await loadRequestForAction(req, res, (r) => r.createdBy !== 'Admin');
+    const request = await findRequest(req, res);
     if (!request) return;
-    if (!['Pending', 'Manager Approved'].includes(request.status)) return invalidTransition(res, request);
-
-    request.status = 'Admin Approved';
-    request.adminId = req.user.id;
-    await request.save();
-    await leaveHelper.updateUserLeaveBalance(request.employeeId);
-
-    const employee = await User.findById(request.employeeId).select('firstName lastName');
-
-    await sendNotificationToUser(request.employeeId, {
-      title: 'Leave Request Approved',
-      message: `Your leave request from ${formatRange(request)} has been approved by HR.`,
-      type: 'leave_approved',
-      relatedId: request._id
-    });
-    if (request.managerId.toString() !== req.user.id) {
-      await sendNotificationToUser(request.managerId, {
-        title: 'Leave Request Approved by Admin',
-        message: `A leave request for ${fullName(employee)} from ${formatRange(request)} has been approved by HR.`,
-        type: 'leave_approved',
-        relatedId: request._id
-      });
-    }
-
-    res.status(200).json({ message: 'Request approved by admin', request });
+    const { startDate, endDate, note } = req.body || {};
+    const updated = await decisions.counterPropose({ request, user: req.user, startDate, endDate, note });
+    res.status(200).json({ message: 'New dates proposed to the employee', request: updated });
   } catch (error) {
-    console.error('Error in adminApproveRequest:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, error, 'counterPropose');
   }
 };
 
-// Admin rejects a request
-exports.adminRejectRequest = async (req, res) => {
+// POST /:id/counter-proposal/accept and /decline (the requester)
+exports.respondToProposal = (accept) => async (req, res) => {
   try {
-    const request = await loadRequestForAction(req, res, (r) => r.createdBy !== 'Admin');
+    const request = await findRequest(req, res);
     if (!request) return;
-    if (!['Pending', 'Manager Approved'].includes(request.status)) return invalidTransition(res, request);
-
-    request.status = 'Admin Rejected';
-    request.adminId = req.user.id;
-    await request.save();
-
-    const employee = await User.findById(request.employeeId).select('firstName lastName');
-
-    await sendNotificationToUser(request.employeeId, {
-      title: 'Leave Request Rejected',
-      message: `Your leave request from ${formatRange(request)} has been rejected by HR.`,
-      type: 'leave_rejected',
-      relatedId: request._id
-    });
-    if (request.managerId.toString() !== req.user.id) {
-      await sendNotificationToUser(request.managerId, {
-        title: 'Leave Request Rejected by Admin',
-        message: `A leave request for ${fullName(employee)} from ${formatRange(request)} has been rejected by HR.`,
-        type: 'leave_rejected',
-        relatedId: request._id
-      });
-    }
-
-    res.status(200).json({ message: 'Request rejected by admin', request });
+    const updated = await decisions.respondToProposal({ request, user: req.user, accept });
+    res.status(200).json({ message: accept ? 'Proposed dates accepted' : 'Proposed dates declined', request: updated });
   } catch (error) {
-    console.error('Error in adminRejectRequest:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendError(res, error, 'respondToProposal');
   }
 };
 
-// CEO approves a request created by an admin
-exports.superAdminApproveRequest = async (req, res) => {
-  try {
-    const request = await loadRequestForAction(req, res, (r) => r.createdBy === 'Admin');
-    if (!request) return;
-    if (request.status !== 'Pending') return invalidTransition(res, request);
+// --- Decision support ----------------------------------------------------------------
 
-    request.status = 'CEO Approved';
-    await request.save();
-    await leaveHelper.updateUserLeaveBalance(request.employeeId);
-
-    await sendNotificationToUser(request.employeeId, {
-      title: 'Leave Request Approved by CEO',
-      message: `Your leave request from ${formatRange(request)} has been approved by the CEO.`,
-      type: 'leave_approved',
-      relatedId: request._id
-    });
-
-    res.status(200).json({ message: 'Request approved by CEO', request });
-  } catch (error) {
-    console.error('Error in superAdminApproveRequest:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
+const canSee = (user, request) => {
+  if (user.role === 'admin' || user.role === 'superAdmin') return true;
+  const me = String(user.id);
+  if (policies.idOf(request.employeeId) === me) return true;
+  return user.role === 'manager' && policies.idOf(request.managerId) === me;
 };
 
-// CEO rejects a request created by an admin
-exports.superAdminRejectRequest = async (req, res) => {
+// GET /:id/context: approval track, team coverage, policy checks and suggested dates.
+exports.getRequestContext = async (req, res) => {
   try {
-    const request = await loadRequestForAction(req, res, (r) => r.createdBy === 'Admin');
-    if (!request) return;
-    if (request.status !== 'Pending') return invalidTransition(res, request);
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Leave request not found' });
+    const request = await LeaveRequest.findById(req.params.id)
+      .populate('employeeId', 'firstName lastName position role departmentId remainingLeaveDays leaveRequestAllowed profilePicture')
+      .populate('managerId', 'firstName lastName role')
+      .populate('history.by', 'firstName lastName')
+      .populate('counterProposal.by', 'firstName lastName')
+      .lean();
+    if (!request) return res.status(404).json({ message: 'Leave request not found' });
+    if (!canSee(req.user, request)) return res.status(403).json({ message: 'You are not allowed to view this request' });
 
-    request.status = 'CEO Rejected';
-    await request.save();
+    const employee = request.employeeId;
+    const department = employee?.departmentId
+      ? await Department.findById(employee.departmentId).select('name coverageLimit').lean()
+      : null;
+    const teamMembers = department
+      ? await User.find({ departmentId: department._id }).select('firstName lastName').lean()
+      : [employee];
+    const limit = rules.coverageLimitFor(department, teamMembers.length);
 
-    await sendNotificationToUser(request.employeeId, {
-      title: 'Leave Request Rejected by CEO',
-      message: `Your leave request from ${formatRange(request)} has been rejected by the CEO.`,
-      type: 'leave_rejected',
-      relatedId: request._id
+    // Leave around the request, wide enough to search for alternative dates.
+    const teamLeave = await LeaveRequest.find({
+      employeeId: { $in: teamMembers.map((m) => m._id) },
+      startDate: { $lte: rules.addWorkdays(request.endDate, 60) },
+      endDate: { $gte: rules.addWorkdays(request.startDate, -60) },
+    }).select('employeeId startDate endDate status').lean();
+
+    const subject = { ...request, employeeId: employee._id };
+    const coverage = rules.buildCoverage({ request: subject, teamMembers, teamLeave, limit });
+    const balance = { remaining: employee.remainingLeaveDays ?? 0, allowance: employee.leaveRequestAllowed ?? 0 };
+    const checks = rules.policyChecks({ request, balance, coverage });
+    const suggestion = coverage.overLimit.length
+      ? rules.suggestDates({ request: subject, teamLeave, limit, earliest: rules.addWorkdays(startOfDay(new Date()), 1) })
+      : null;
+
+    const me = String(req.user.id);
+    const decision = request.decision;
+    res.json({
+      request: { ...request, workingDays: countWorkingDays(request.startDate, request.endDate) },
+      department: department ? { id: department._id, name: department.name, limit, teamSize: teamMembers.length } : null,
+      steps: rules.approvalSteps(request),
+      coverage,
+      checks,
+      suggestion,
+      canReview: policies.canReviewLeave(req.user, request),
+      reviewPath: policies.LEAVE_REVIEW_PATH[req.user.role] || null,
+      canUndo: Boolean(decision && policies.idOf(decision.by) === me && decision.notified === false && new Date(decision.undoUntil) > new Date()),
+      canRespond: request.counterProposal?.status === 'open' && policies.idOf(employee._id) === me,
     });
-
-    res.status(200).json({ message: 'Request rejected by CEO', request });
   } catch (error) {
-    console.error('Error in superAdminRejectRequest:', error);
+    console.error('Error building leave request context:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

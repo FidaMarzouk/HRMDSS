@@ -29,9 +29,20 @@ exports.getAllDepartments = async (req, res, next) => {
   }
 };
 // Create department 
+// coverageLimit: a positive whole number, or empty/null for the default (25% of the team).
+const parseCoverageLimit = (value) => {
+  if (value === undefined) return { skip: true };
+  if (value === null || value === '') return { value: null };
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) return { error: 'Coverage limit must be a whole number of at least 1, or empty for the default.' };
+  return { value: n };
+};
+
 exports.createDepartment = async (req, res, next) => {
   try {
-    const { name, managerId, employeeIds } = req.body;
+    const { name, managerId, employeeIds, coverageLimit } = req.body;
+    const coverage = parseCoverageLimit(coverageLimit);
+    if (coverage.error) return res.status(400).json({ message: coverage.error });
     if (!name || !String(name).trim()) {
       return res.status(400).json({ message: "Department name is required" });
     }
@@ -46,6 +57,7 @@ exports.createDepartment = async (req, res, next) => {
     const newDepartment = new Department({
       name,
       managerId: null,
+      coverageLimit: coverage.skip ? null : coverage.value,
       employees: []
     });
     
@@ -141,7 +153,9 @@ exports.createDepartment = async (req, res, next) => {
 // Update department
 exports.updateDepartment = async (req, res, next) => {
   try {
-    const { name, managerId, employeeIds } = req.body;
+    const { name, managerId, employeeIds, coverageLimit } = req.body;
+    const coverage = parseCoverageLimit(coverageLimit);
+    if (coverage.error) return res.status(400).json({ message: coverage.error });
     const departmentId = req.params.id;
     const department = await Department.findById(departmentId);
     if (!department) {
@@ -161,6 +175,8 @@ exports.updateDepartment = async (req, res, next) => {
       }
       department.name = name;
     }
+
+    if (!coverage.skip) department.coverageLimit = coverage.value;
 
     // Get the previous managerId for reference
     const previousManagerId = department.managerId ? department.managerId.toString() : null;
