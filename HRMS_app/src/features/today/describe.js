@@ -4,6 +4,11 @@ const timeOf = (d) => new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit",
 
 // "24–27 Nov · 4 days" for leave, "Thu 22 Oct · 09:30–12:00 · Booking" for events.
 export const describeWhen = (item) => {
+  if (item.kind === "correction") {
+    const date = formatDay(item.startDate, { weekday: "short", day: "numeric", month: "short" });
+    const times = [item.correction?.checkIn && `in ${item.correction.checkIn}`, item.correction?.checkOut && `out ${item.correction.checkOut}`].filter(Boolean).join(" · ");
+    return `${date}${times ? ` · ${times}` : ""} · correction`;
+  }
   if (item.kind === "leave") {
     const days = countWorkingDays(item.startDate, item.endDate);
     const start = formatDay(item.startDate, { day: "numeric", month: "short" });

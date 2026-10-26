@@ -68,8 +68,41 @@ const canSeePerson = (user, target, viewerDepartmentId) => {
   return Boolean(viewerDepartmentId && target.departmentId && idOf(target.departmentId) === idOf(viewerDepartmentId));
 };
 
+// --- Attendance corrections: same chain as leave.
+//  manager: corrections routed to them; HR: anyone's except HR's own;
+//  CEO: HR administrators' corrections.
+const correctionQueueFilter = (user) => {
+  const pending = { status: 'pending', userId: { $ne: user.id } };
+  switch (user.role) {
+    case 'manager':
+      return { ...pending, reviewerId: user.id };
+    case 'admin':
+      return { ...pending, requesterRole: { $ne: 'admin' } };
+    case 'superAdmin':
+      return { ...pending, requesterRole: 'admin' };
+    default:
+      return null;
+  }
+};
+
+const canReviewCorrection = (user, correction) => {
+  if (correction.status !== 'pending' || idOf(correction.userId) === String(user.id)) return false;
+  switch (user.role) {
+    case 'manager':
+      return idOf(correction.reviewerId) === String(user.id);
+    case 'admin':
+      return correction.requesterRole !== 'admin';
+    case 'superAdmin':
+      return correction.requesterRole === 'admin';
+    default:
+      return false;
+  }
+};
+
 module.exports = {
   idOf,
+  correctionQueueFilter,
+  canReviewCorrection,
   canSeePerson,
   LEAVE_REVIEW_PATH,
   leaveQueueFilter,

@@ -68,9 +68,10 @@ async function approveLeave(item) {
   });
 }
 
-// Events have no server-side undo yet (Calendar, Phase 7): the request is sent
-// only after the window unless Undo is pressed.
-function approveEvent(item) {
+// Events and attendance corrections have no server-side undo: the request is
+// sent only after the window unless Undo is pressed.
+const DEFERRED_TITLE = { event: "Event approved", correction: "Correction approved" };
+function approveDeferred(item) {
   mark(item.id);
   const { undo } = deferRequest({
     key: `approve:${item.id}`,
@@ -87,7 +88,7 @@ function approveEvent(item) {
   });
   toast({
     tone: "success",
-    title: "Event approved",
+    title: DEFERRED_TITLE[item.kind] || "Approved",
     text: `${item.title}. Sent when the timer ends.`,
     duration: UNDO_WINDOW_MS,
     action: {
@@ -104,5 +105,5 @@ function approveEvent(item) {
 export function approveItem(item) {
   if (pendingIds.has(item.id)) return;
   if (item.kind === "leave") approveLeave(item);
-  else approveEvent(item);
+  else approveDeferred(item);
 }

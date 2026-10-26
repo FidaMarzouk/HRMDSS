@@ -2,6 +2,7 @@ const Attendance = require('../Models/Attendance.js');
 const User = require('../Models/User.js');
 const LeaveRequest = require('../Models/LeaveRequest');
 const { FINAL_APPROVED } = require('../constants/leave');
+const { detectSource } = require('../services/attendanceRules');
 const {
   WORK_START, LATE_AFTER, WORK_END, LUNCH_START, LUNCH_END, PUNCH_WINDOW,
   atTimeToday, todayBoundaries, minutesBetween
@@ -60,7 +61,8 @@ exports.punchIn = async (req, res) => {
       .sort({ sessionNumber: -1 });
     const sessionNumber = lastSession ? lastSession.sessionNumber + 1 : 1;
 
-    const attendance = new Attendance({ userId, checkIn: now, date: today, sessionNumber, productionHours: 0 });
+    // Source from the browser (web or mobile); no badge hardware exists.
+    const attendance = new Attendance({ userId, checkIn: now, date: today, sessionNumber, productionHours: 0, source: detectSource(req.headers['user-agent']) });
 
     const scheduledStart = atTimeToday(WORK_START, now);
     const lateThreshold = atTimeToday(LATE_AFTER, now);

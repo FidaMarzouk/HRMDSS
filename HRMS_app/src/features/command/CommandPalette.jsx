@@ -5,13 +5,12 @@ import { Dialog } from "../../components/ui/dialog";
 import { Kbd } from "../../components/ui/kbd";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../theme/theme";
-import api, { errorMessage } from "../../lib/api";
-import { showError, showSuccess } from "../../lib/alerts";
-import { invalidateShell, usePeopleSearch, useToday, useTodaySessions } from "../../lib/queries";
+import { usePeopleSearch, useToday, useTodaySessions } from "../../lib/queries";
 import { openAssistant } from "../../lib/assistant";
 import { cn } from "../../lib/utils";
 import { pagesFor, pathFor } from "../../config/navigation";
 import { approveItem } from "../today/decisions";
+import { punch as punchAction } from "../time/timeApi";
 import { describeWhen } from "../today/describe";
 import { summarizeSessions } from "../time/sessions";
 
@@ -30,15 +29,7 @@ const useDebounced = (value, ms) => {
   return v;
 };
 
-const punch = (path, title) => async () => {
-  try {
-    await api.post(path);
-    invalidateShell();
-    showSuccess(title);
-  } catch (err) {
-    showError("Could not update attendance", errorMessage(err));
-  }
-};
+const punch = (path, title) => () => punchAction(path, title);
 
 /**
  * Ctrl K / Cmd K: search people and pages and run actions from anywhere.

@@ -9,31 +9,12 @@ const { toCompanyDate, startOfDay, countWorkingDays } = require('../utils/time')
 const policies = require('../services/policies');
 const rules = require('../services/leaveRules');
 const decisions = require('../services/leaveDecisions');
+const { resolveApprover } = require('../services/approvers');
 
 const formatRange = (request) =>
   `${new Date(request.startDate).toLocaleDateString()} to ${new Date(request.endDate).toLocaleDateString()}`;
 
 const fullName = (user) => (user ? `${user.firstName} ${user.lastName}` : 'Unknown user');
-
-/**
- * Who must act on a leave request created by this user. Derived server-side so
- * requesters cannot route their request to an approver of their choice.
- *   employee -> their manager, manager -> an admin, admin -> the CEO (superAdmin)
- */
-const resolveApprover = async (user) => {
-  switch (user.role) {
-    case 'employee':
-      return user.managerId
-        ? User.findById(user.managerId).select('firstName lastName role')
-        : null;
-    case 'manager':
-      return User.findOne({ ...User.ACTIVE, role: 'admin' }).select('firstName lastName role');
-    case 'admin':
-      return User.findOne({ ...User.ACTIVE, role: 'superAdmin' }).select('firstName lastName role');
-    default:
-      return null;
-  }
-};
 
 const CREATED_BY = { employee: 'Employee', manager: 'Manager', admin: 'Admin' };
 

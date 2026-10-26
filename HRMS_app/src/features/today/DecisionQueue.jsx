@@ -44,7 +44,7 @@ function QueueRow({ item, pending }) {
       </button>
       <button
         type="button"
-        onClick={() => navigate(pathFor(item.kind === "leave" ? "leave" : "calendar"))}
+        onClick={() => navigate(pathFor({ leave: "leave", correction: "time" }[item.kind] || "calendar"))}
         aria-label={`Open: ${item.title}`}
         title="Open"
         className="grid h-9 w-9 flex-none place-items-center rounded-md border border-line-2 text-ink-2 hover:bg-sunk hover:text-ink"

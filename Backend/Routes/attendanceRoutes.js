@@ -6,6 +6,7 @@ const {
 const authMiddleware = require('../Middlewares/authMiddleware.js');
 const roleMiddleware = require('../Middlewares/roleMiddleware.js');
 const { broadcastOnSuccess } = require('../Middlewares/notificationService');
+const time = require('../Controllers/timeController');
 
 const presenceChanged = broadcastOnSuccess('presence:changed');
 
@@ -25,5 +26,13 @@ router.get('/date-range', getUserAttendanceByDateRange);
 // Team and company views
 router.get('/managed', roleMiddleware(['manager']), getManagedEmployeesAttendance);
 router.get('/all', roleMiddleware(['admin', 'superAdmin']), getAllEmployeesAttendance);
+
+// Time page: day ribbons, own recent days, correction requests
+router.get('/day', time.getDay);
+router.get('/mine', time.getMine);
+router.get('/corrections', time.listCorrections);
+router.post('/corrections', broadcastOnSuccess('queue:changed'), time.createCorrection);
+router.put('/corrections/:id/approve', broadcastOnSuccess('queue:changed'), presenceChanged, time.approveCorrection);
+router.put('/corrections/:id/reject', broadcastOnSuccess('queue:changed'), time.rejectCorrection);
 
 module.exports = router;

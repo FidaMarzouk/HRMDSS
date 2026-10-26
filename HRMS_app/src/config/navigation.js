@@ -5,8 +5,7 @@ import { BarChart3, Bell, CalendarDays, Clipboard, Clock, Gauge, MessageCircle, 
 const TodayPage = lazy(() => import("../features/today/TodayPage"));
 const PeoplePage = lazy(() => import("../features/people/PeoplePage"));
 const LeaveRequestsPage = lazy(() => import("../features/leave/LeaveRequestsPage"));
-const AttendanceManager = lazy(() => import("../pages/Attendance/AttendanceManager"));
-const AttendanceReports = lazy(() => import("../pages/Attendance/AttendanceReports"));
+const TimePage = lazy(() => import("../features/time/TimePage"));
 const CalendarManager = lazy(() => import("../pages/CalendarManager"));
 const HRDashboardHomepage = lazy(() => import("../pages/dashboards/Admin_Dashboard/HRDashboardHomepage"));
 const ManagerDashboardHomepage = lazy(() => import("../pages/dashboards/Manager_Dashboard/ManagerDashboardHomepage"));
@@ -26,8 +25,7 @@ const PAGES = [
   { group: "WORK", key: "people", label: "People", icon: Users, component: PeoplePage, roles: ["admin", "superAdmin"], keywords: "employees departments staff directory archive" },
   { group: "WORK", key: "people", label: "My team", icon: Users, component: PeoplePage, roles: ["manager"], keywords: "employees team directory" },
   { group: "WORK", key: "leave", label: "Leave", icon: Clipboard, component: LeaveRequestsPage, count: "leave", keywords: "leave requests time off vacation" },
-  { group: "WORK", key: "time", label: "Time", icon: Clock, component: AttendanceManager, roles: ["admin", "manager", "employee"], keywords: "attendance punch in out break" },
-  { group: "WORK", key: "time", label: "Time", icon: Clock, component: AttendanceReports, roles: ["superAdmin"], keywords: "attendance reports" },
+  { group: "WORK", key: "time", label: "Time", icon: Clock, component: TimePage, count: "time", keywords: "attendance punch in out break corrections ribbons" },
   { group: "WORK", key: "calendar", label: "Calendar", icon: CalendarDays, component: CalendarManager, count: "calendar", keywords: "events meetings missions bookings resources" },
   // INSIGHT
   { group: "INSIGHT", key: "analytics", label: "HR analytics", icon: BarChart3, component: HRDashboardHomepage, roles: ["admin", "superAdmin"], keywords: "dashboard charts reports" },

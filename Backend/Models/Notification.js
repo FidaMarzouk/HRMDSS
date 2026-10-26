@@ -25,7 +25,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['leave_request', 'leave_approved', 'leave_rejected', 'leave_counter_proposal', 'event', 'event_invitation', 'event_response'],
+    enum: ['leave_request', 'leave_approved', 'leave_rejected', 'leave_counter_proposal', 'attendance_correction', 'event', 'event_invitation', 'event_response'],
     required: true
   },
   relatedId: {
