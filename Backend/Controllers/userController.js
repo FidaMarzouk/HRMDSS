@@ -1,12 +1,18 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const User = require('../Models/User');
+const Attendance = require('../Models/Attendance');
+const Notification = require('../Models/Notification');
+const Session = require('../Models/Session');
 const Department = require('../Models/Department');
 const leaveHelper = require('../Middlewares/leaveCalculationHelper');
 const emailService = require('../services/emailService');
 const { ACCOUNT_SETUP_TTL_MS, issuePasswordToken, passwordLink } = require('../utils/passwordTokens');
 const { mergeSkillNames } = require('../utils/skills');
 const audit = require('../services/audit');
+const sessions = require('../services/sessions');
+const { sendNotificationToUser } = require('../Middlewares/notificationService');
 
 // Fields a manager may see about their team (no salary, personal email, birthdate...).
 const TEAM_SAFE_FIELDS = 'firstName lastName email phone position departmentId managerId hireDate skills role profilePicture leaveRequestAllowed remainingLeaveDays';
@@ -35,7 +41,10 @@ exports.updateProfile = async (req, res) => {
     }
     if (updateData.skills !== undefined) {
       const current = await User.findById(userId).select('skills');
-      updateData.skills = mergeSkillNames(current?.skills, parseSkills(updateData.skills) || []);
+      const merged = mergeSkillNames(current?.skills, parseSkills(updateData.skills) || []);
+      // Skills rated by a manager or HR stay: only they can remove them.
+      const rated = (current?.skills || []).filter((sk) => sk.validatedBy && !merged.some((m) => m.name.toLowerCase() === sk.name.toLowerCase()));
+      updateData.skills = [...merged, ...rated];
     }
     if (req.file) {
       updateData.profilePicture = `/uploads/${req.file.filename}`;
@@ -57,7 +66,26 @@ exports.updateProfile = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true, runValidators: true })
       .populate('departmentId', 'name');
 
-    res.status(200).json(updatedUser);
+    let signedOut = 0;
+    if (updateData.password) {
+      // Other devices keep the old credentials' session: end them, and tell the person.
+      signedOut = await sessions.revokeOthers(userId, req.user.sid || null, 'password_changed');
+      sendNotificationToUser(userId, {
+        title: 'Your password was changed',
+        message: `Your password was changed from your profile${signedOut ? ` and ${signedOut} other device${signedOut === 1 ? ' was' : 's were'} signed out` : ''}. If this was not you, contact HR right away.`,
+        type: 'system',
+        priority: 'urgent',
+      }).catch(() => {});
+      emailService.sendCredentialUpdateNotification({
+        email: updatedUser.personalEmail || updatedUser.email,
+        firstName: updatedUser.firstName,
+        passwordChanged: true,
+      }).catch((error) => console.error('Error sending password change email:', error));
+    }
+
+    const body = updatedUser.toObject();
+    delete body.password;
+    res.status(200).json({ ...body, signedOutSessions: signedOut });
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ message: 'Server error' });
@@ -304,6 +332,9 @@ exports.updateUser = async (req, res) => {
       .populate('departmentId', 'name employees')
       .populate('managerId', 'firstName lastName');
 
+    // A password set by HR ends the person's sessions everywhere.
+    if (passwordChanged) await sessions.revokeOthers(id, null, 'password_changed');
+
     if (newLoginEmail || passwordChanged) {
       emailService.sendCredentialUpdateNotification({
         email: updatedUser.personalEmail || updatedUser.email,
@@ -375,10 +406,83 @@ exports.getCurrentUser = async (req, res) => {
       email: currentUser.email,
       profilePicture: currentUser.profilePicture,
       position: currentUser.position,
-      role: currentUser.role
+      role: currentUser.role,
+      preferences: {
+        digest: Boolean(currentUser.preferences?.digest),
+        theme: currentUser.preferences?.theme || null,
+        quietHours: {
+          enabled: Boolean(currentUser.preferences?.quietHours?.enabled),
+          from: currentUser.preferences?.quietHours?.from || '19:00',
+          to: currentUser.preferences?.quietHours?.to || '08:00',
+        },
+      },
     });
   } catch (error) {
     console.error('Error fetching current user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// PUT /api/users/me/preferences { theme?, digest?, quietHours?: { enabled, from, to } }
+const THEMES = ['light', 'dark', 'auto', 'shift'];
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+exports.updatePreferences = async (req, res) => {
+  try {
+    const { theme, digest, quietHours } = req.body || {};
+    const set = {};
+    if (theme !== undefined) {
+      if (!THEMES.includes(theme)) return res.status(400).json({ message: 'Unknown theme' });
+      set['preferences.theme'] = theme;
+    }
+    if (digest !== undefined) {
+      if (typeof digest !== 'boolean') return res.status(400).json({ message: 'digest must be true or false' });
+      set['preferences.digest'] = digest;
+    }
+    if (quietHours !== undefined) {
+      const { enabled, from, to } = quietHours || {};
+      if (typeof enabled !== 'boolean' || !HHMM.test(from || '') || !HHMM.test(to || '')) {
+        return res.status(400).json({ message: 'Quiet hours need a start and an end time (HH:MM)' });
+      }
+      if (from === to) return res.status(400).json({ message: 'Quiet hours must start and end at different times' });
+      Object.assign(set, { 'preferences.quietHours.enabled': enabled, 'preferences.quietHours.from': from, 'preferences.quietHours.to': to });
+    }
+    if (!Object.keys(set).length) return res.status(400).json({ message: 'Nothing to change' });
+    const user = await User.findByIdAndUpdate(req.user.id, { $set: set }, { new: true, runValidators: true }).select('preferences').lean();
+    // Switching the digest off delivers what was waiting for it.
+    if (digest === false) await Notification.updateMany({ recipient: req.user.id, held: true }, { $set: { held: false } });
+    res.json({ preferences: user.preferences });
+  } catch (error) {
+    console.error('Error saving preferences:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// GET /api/users/me/overview: what the profile shows besides the editable fields:
+// this year's leave balance, overtime this month, last sign-in elsewhere.
+exports.getOverview = async (req, res) => {
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const [balance, overtime, previousSession] = await Promise.all([
+      leaveHelper.updateUserLeaveBalance(req.user.id, now),
+      Attendance.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(req.user.id), date: { $gte: monthStart } } },
+        { $group: { _id: null, minutes: { $sum: '$overtime' }, hours: { $sum: '$productionHours' }, days: { $addToSet: '$date' } } },
+      ]),
+      Session.findOne({ userId: req.user.id, ...(req.user.sid ? { _id: { $ne: req.user.sid } } : {}) }).sort({ createdAt: -1 }).select('createdAt device ip').lean(),
+    ]);
+    res.json({
+      leave: balance,
+      month: {
+        start: monthStart,
+        overtimeMinutes: Math.round(overtime[0]?.minutes || 0),
+        productionHours: Math.round((overtime[0]?.hours || 0) * 10) / 10,
+        daysWorked: overtime[0]?.days?.length || 0,
+      },
+      previousSignIn: previousSession ? { at: previousSession.createdAt, device: previousSession.device, ip: previousSession.ip } : null,
+    });
+  } catch (error) {
+    console.error('Error loading profile overview:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import api, { errorMessage } from "../../lib/api";
 import { useAuth, APP_HOME } from "../../context/AuthContext";
 import { Mail, Lock, ArrowRight, Power } from "lucide-react";
@@ -11,6 +11,13 @@ const RoboticLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { refresh } = useAuth();
+  const [params] = useSearchParams();
+  // Set when this device was signed out from elsewhere (see useLiveUpdates).
+  const notice = {
+    signed_out_elsewhere: "You were signed out from another device.",
+    password_changed: "Your password was changed: please sign in again.",
+    password_reset: "Your password was reset: please sign in again.",
+  }[params.get("ended")];
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -95,6 +102,12 @@ const RoboticLogin = () => {
                   Initialize authentication sequence
                 </p>
               </div>
+
+              {notice && !error && (
+                <div role="status" className="p-4 sm:p-5 bg-teal/10 border border-teal/30 rounded-lg">
+                  <p className="text-ink text-sm">{notice}</p>
+                </div>
+              )}
 
               {error && (
                 <div className="p-4 sm:p-5 bg-red/10 border border-red/20 rounded-lg">

@@ -85,6 +85,7 @@ export function CommandPalette({ open, onClose, onLogout }) {
     list.push({ id: "theme-light", group: "ACTIONS", label: "Use light theme", keywords: "theme light day mode", run: () => setMode("light") });
     list.push({ id: "theme-dark", group: "ACTIONS", label: "Use dark theme", keywords: "theme dark night mode", run: () => setMode("dark") });
     list.push({ id: "theme-auto", group: "ACTIONS", label: "Follow system theme", keywords: "theme auto system os", run: () => setMode("auto") });
+    list.push({ id: "theme-shift", group: "ACTIONS", label: "Theme by shift (dark once punched out)", keywords: "theme shift auto punch night", run: () => setMode("shift") });
     list.push({ id: "logout", group: "ACTIONS", label: "Log out", keywords: "logout sign out exit", run: onLogout });
 
     (people.data?.people || []).forEach((p) =>

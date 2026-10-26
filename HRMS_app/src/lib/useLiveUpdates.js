@@ -25,13 +25,20 @@ export default function useLiveUpdates() {
   const onNotification = useCallback((n) => {
     queryClient.invalidateQueries({ queryKey: keys.counts });
     queryClient.invalidateQueries({ queryKey: ["inbox"] });
-    if (n?.title) toast({ tone: n.priority === "urgent" ? "warning" : "info", title: n.title, text: n.message });
+    // During quiet hours non-urgent notifications arrive silently (no pop-up).
+    if (n?.title && !n.silent) toast({ tone: n.priority === "urgent" ? "warning" : "info", title: n.title, text: n.message });
   }, []);
 
   const onChat = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: keys.counts });
   }, []);
 
+  // This session was ended from another device or by a password change.
+  const onSessionEnded = useCallback(({ reason } = {}) => {
+    window.location.assign(`/?ended=${encodeURIComponent(reason || "signed_out_elsewhere")}`);
+  }, []);
+
+  useSocketEvent("session:ended", onSessionEnded);
   useSocketEvent("presence:changed", onPresence);
   useSocketEvent("queue:changed", onQueue);
   useSocketEvent("notification", onNotification);

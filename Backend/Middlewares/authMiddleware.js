@@ -1,5 +1,6 @@
 const verifyToken = require('../utils/jwtVerify');
 const accountStatus = require('../services/accountStatus');
+const sessions = require('../services/sessions');
 
 const authMiddleware = (req, res, next) => {
   // Prefer the httpOnly cookie, fall back to a Bearer header.
@@ -22,6 +23,12 @@ const authMiddleware = (req, res, next) => {
   if (accountStatus.isArchived(result.user.id)) {
     return res.status(401).json({ message: 'This account has been archived.' });
   }
+
+  // Signed out from another device, or after a password change.
+  if (!sessions.isActive(result.user.sid)) {
+    return res.status(401).json({ message: 'This session has been signed out.' });
+  }
+  sessions.touch(result.user.sid);
 
   req.user = result.user;
   next();

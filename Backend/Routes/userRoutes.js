@@ -1,5 +1,5 @@
 const express = require('express');
-const { createUser, updateUser, getUsers, getRemainingLeaveDays, updateProfile, getProfile, getCurrentUser } = require('../Controllers/userController');
+const { createUser, updateUser, getUsers, getRemainingLeaveDays, updateProfile, getProfile, getCurrentUser, getOverview, updatePreferences } = require('../Controllers/userController');
 const authMiddleware = require('../Middlewares/authMiddleware');
 const roleMiddleware = require('../Middlewares/roleMiddleware');
 const upload = require('../Middlewares/upload');
@@ -8,6 +8,8 @@ const router = express.Router();
 
 // Self-service (must be declared before '/:id')
 router.get('/me', authMiddleware, getCurrentUser);
+router.get('/me/overview', authMiddleware, getOverview);
+router.put('/me/preferences', authMiddleware, updatePreferences);
 router.get('/remaining-leave-days', authMiddleware, getRemainingLeaveDays);
 router.get('/profile', authMiddleware, getProfile);
 router.put('/profile', authMiddleware, upload.single('profileImage'), updateProfileValidationRules, validate, updateProfile);

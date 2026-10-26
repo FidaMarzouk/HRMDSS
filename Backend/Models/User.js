@@ -42,10 +42,19 @@ const userSchema = new mongoose.Schema({
   archivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   archiveReason: { type: String, maxlength: 500 },
 
-  // Personal settings. digest: low-urgency notifications are collected into
-  // one 09:00 summary on working days instead of arriving one by one.
+  // Personal settings (Profile). digest: low-urgency notifications are
+  // collected into one 09:00 summary on working days. theme: follows the person
+  // on every device; "shift" = light during your working day, dark once you
+  // have punched out. quietHours: no pop-ups for non-urgent notifications.
   preferences: {
     digest: { type: Boolean, default: false },
+    // Unset until the person chooses: their device's choice is then saved here.
+    theme: { type: String, enum: ['light', 'dark', 'auto', 'shift'] },
+    quietHours: {
+      enabled: { type: Boolean, default: false },
+      from: { type: String, default: '19:00', match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+      to: { type: String, default: '08:00', match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+    },
   },
 }, { timestamps: true });
 

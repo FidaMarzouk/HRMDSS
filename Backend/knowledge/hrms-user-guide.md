@@ -24,7 +24,8 @@
   show how many things wait for you there. Collapse the sidebar with the arrow button; on a phone, open it with the
   menu button.
 - The **top bar** shows a greeting, today's date and week, a timeline of your shift, the bell (it counts only what
-  needs your action and opens the Inbox), the theme switch (light, dark or follow your system) and your punch status.
+  needs your action and opens the Inbox), the theme switch (light, dark, follow your system, or by shift) and your punch
+  status.
 - **Search or run a command (Ctrl K):** opens the command palette. Type to find a person, a page or an action
   (Request leave, Punch in, Start break, Punch out, approve an item waiting for you, change the theme, log out), or
   ask the ENOVA Assistant. Arrow keys move, Enter runs.
@@ -235,11 +236,24 @@ minutes, production hours and overtime), **Leave** (balance, request status, usa
 - On a phone, switch between **Notifications** and **Messages** at the top of the Inbox.
 
 ## Profile
-- Open **Profile** from the sidebar or by clicking your initials in the top bar.
-- You can update your first and last name, phone number, birthdate, skills and profile picture (JPG or PNG,
-  up to 2 MB), and change your password (current password required).
-- Your work email, position, department, salary and hire date are managed by HR and shown read-only. Ask HR to
-  correct them.
+Open **Profile** from the sidebar or by clicking your initials in the top bar.
+
+- **Access card**: your photo (click the camera to change it: JPG or PNG, up to 2 MB), name, position, department,
+  today's punch state and your staff reference.
+- **Balances**: annual leave left of what you have earned this year (at most 24 days a year, back to 0 on 1 January),
+  and your overtime and hours worked this month.
+- **Personal**: click **Edit** (or **Add**) next to a field to change only that field, then **Save**; Escape cancels.
+  You can change your first and last name, phone (digits only), personal email and date of birth.
+- **Work**: work email, position, department, manager, hire date and access are managed by HR and shown with a lock.
+  **Message HR** opens a conversation with an HR administrator if something is wrong.
+- **Skills**: add a skill with the field and **Add**; remove one with its ×. Levels (1–5) are set by your manager or HR,
+  and a rated skill cannot be removed by you.
+- **Preferences**: **Theme** (Light, Dark, Auto = follow your device, Shift = dark once you have punched out), saved to
+  your profile so it follows you; **Daily digest at 09:00**; **Quiet hours** (switch on, choose from/to, **Save**).
+- **Sign-in and security**: change your password (current password, then the new one twice, at least 6 characters);
+  your other devices are signed out when it changes. **Active sessions** lists where you are signed in; **Sign out**
+  ends one, **Sign out all other devices** ends all but this one, and **Log out** ends this one.
+- **Log out** asks first if you are still punched in, and offers **Punch out and log out**.
 
 ## Update the assistant's knowledge (HR)
 The ENOVA Assistant answers from two files on the server: `Backend/knowledge/enova-robotics-handbook.md` and
@@ -258,7 +272,8 @@ The ENOVA Assistant answers from two files on the server: `Backend/knowledge/eno
 - If the AI service is unavailable, the assistant shows the most relevant handbook passages instead.
 
 ## Troubleshooting
-- **Sent back to the login page:** your 5-hour session expired; sign in again.
+- **Sent back to the login page:** your 5-hour session expired, or you were signed out from another device or after a
+  password change (the login page says so); sign in again.
 - **A page is missing from your sidebar:** it belongs to another role.
 - **Numbers or lists not updating live:** they refresh on their own; if not, reload the page. If it persists, contact
   HR or IT.

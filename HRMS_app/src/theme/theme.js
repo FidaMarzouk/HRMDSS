@@ -1,9 +1,15 @@
 import { createContext, useContext, useMemo } from "react";
 
-// Theme mode is "light", "dark" or "auto" (follow the OS). The resolved theme is
+// Theme mode is "light", "dark", "auto" (follow the OS) or "shift" (light during
+// your working day, dark once you have punched out). The resolved theme is
 // always "light" or "dark". index.html applies the saved mode before first paint.
 export const THEME_STORAGE_KEY = "pulse-theme";
-export const THEME_MODES = ["light", "dark", "auto"];
+// Last resolved colour in "shift" mode, for the first paint.
+export const THEME_SHIFT_KEY = "pulse-theme-shift";
+export const THEME_MODES = ["light", "dark", "auto", "shift"];
+
+// Outside 07:00-19:00 counts as off-shift when no punch says otherwise.
+export const offShiftByClock = (now = new Date()) => now.getHours() < 7 || now.getHours() >= 19;
 
 export const ThemeContext = createContext(null);
 

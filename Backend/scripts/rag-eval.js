@@ -44,6 +44,8 @@ const CASES = [
   ['What is the daily digest?', 'Notifications'],
   ['How do I share my leave request in a chat?', 'Messages'],
   ['How do I change my profile picture?', 'Profile'],
+  ['How do I sign out my other devices?', 'Profile'],
+  ['What does the shift theme do?', 'Profile and preferences'],
   ['Which public holidays do we have?', 'Public holidays'],
 ];
 

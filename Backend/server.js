@@ -24,6 +24,7 @@ const { markAbsentUsers } = require('./Controllers/attendanceController');
 const knowledgeIndex = require('./services/rag/knowledgeIndex');
 const { resumePendingNotifications } = require('./services/leaveDecisions');
 const accountStatus = require('./services/accountStatus');
+const sessions = require('./services/sessions');
 const authRoutes = require('./Routes/authRoutes');
 const userRoutes = require('./Routes/userRoutes');
 const leaveRequestRoutes = require('./Routes/leaveRequestRoutes');
@@ -132,6 +133,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('Connected to MongoDB');
     await accountStatus.load();
+    await sessions.load();
     // Leave decisions whose undo window ended while the server was down.
     const pending = await resumePendingNotifications();
     if (pending) console.log(`Resumed ${pending} pending leave decision notification(s)`);
