@@ -2,9 +2,8 @@ import { Fragment, useState, useEffect } from "react";
 import { Calendar, Clock, Plus, Filter, List, ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertTriangle, Users, MapPin, Briefcase, Wrench, Monitor, Home, User } from "lucide-react";
 import api from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import CircuitPattern from "../components/CircuitPattern";
 import { format, parseISO, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addDays} from "date-fns";
-import Swal from "sweetalert2";
+import { confirmAction, showError, showInfo, showSuccess, showWarning } from "../lib/alerts";
 import "react-datepicker/dist/react-datepicker.css";
 import "../datepicker.css";
 import DatePicker from "react-datepicker";
@@ -23,16 +22,16 @@ const resourceTypeIcons = {
 
 // Event status to color mapping
 const statusColors = {
-  pending: "bg-yellow-500/20 border-yellow-500 text-yellow-400",
-  approved: "bg-green-500/20 border-green-500 text-green-400",
-  declined: "bg-red-500/20 border-red-500 text-red-400"
+  pending: "bg-amber/10 border-amber text-amber",
+  approved: "bg-teal/10 border-teal text-teal",
+  declined: "bg-red/10 border-red text-red"
 };
 
 // Event type to color mapping
 const eventTypeColors = {
-  meeting: "bg-blue-500/20 border-blue-500",
-  mission: "bg-purple-500/20 border-purple-500",
-  resourceReservation: "bg-[#3baca5]/20 border-[#3baca5]"
+  meeting: "bg-blue/10 border-blue",
+  mission: "bg-violet/10 border-violet",
+  resourceReservation: "bg-teal/10 border-teal"
 };
 
 const CalendarManager = () => {
@@ -363,6 +362,12 @@ useEffect(() => {
     setEventForm(baseForm);
     setShowEventModal(true);
   };
+// One line per conflicting booking, for the conflict warning.
+const describeConflicts = (events = []) =>
+  events
+    .map((event) => `${event.title}: ${format(new Date(event.startDateTime), "MMM d, h:mm a")} to ${format(new Date(event.endDateTime), "h:mm a")}`)
+    .join("\n");
+
 // Updated form submission logic
 const handleSubmitEvent = async (e) => {
   e.preventDefault();
@@ -370,39 +375,10 @@ const handleSubmitEvent = async (e) => {
   // Block submission if resource is under maintenance or unavailable
   if (eventForm.eventType === "resourceReservation") {
     if (resourceMaintenanceStatus) {
-      Swal.fire({
-        title: "Resource Unavailable",
-        text: "This resource is currently under maintenance and cannot be reserved.",
-        icon: "warning",
-        background: "#1E1E1E",
-        color: "#fff"
-      });
+      showWarning("Resource Unavailable", "This resource is currently under maintenance and cannot be reserved.");
       return;
     } else if (!isEditMode && !isResourceAvailable) {
-      Swal.fire({
-        title: "Resource Unavailable",
-        text: resourceConflictMessage,
-        icon: "warning",
-        background: "#1E1E1E",
-        color: "#fff",
-        showCancelButton: true,
-        confirmButtonText: "Show Conflicting Reservations",
-        cancelButtonText: "Back to Form"
-      }).then((result) => {
-        if (result.isConfirmed && conflictingEvents.length > 0) {
-          let conflictsList = conflictingEvents.map(event =>
-            `${event.title} - ${format(new Date(event.startDateTime), "MMM d, h:mm a")} to ${format(new Date(event.endDateTime), "h:mm a")}`
-          ).join("\n");
-
-          Swal.fire({
-            title: "Conflicting Reservations",
-            text: conflictsList,
-            icon: "info",
-            background: "#1E1E1E",
-            color: "#fff"
-          });
-        }
-      });
+      showWarning("Resource unavailable", [resourceConflictMessage, describeConflicts(conflictingEvents)].filter(Boolean).join("\n\n"));
       return;
     }
   }
@@ -432,25 +408,13 @@ const handleSubmitEvent = async (e) => {
       await api.put(`${API_BASE_URL}/event/${selectedEvent._id}`, formData, {
               });
 
-      Swal.fire({
-        title: "Success!",
-        text: "Event updated successfully.",
-        icon: "success",
-        background: "#1E1E1E",
-        color: "#fff"
-      });
+      showSuccess("Success!", "Event updated successfully.");
     } else {
       // Create new event
       await api.post(`${API_BASE_URL}/event`, formData, {
               });
 
-      Swal.fire({
-        title: "Success!",
-        text: "Event created successfully.",
-        icon: "success",
-        background: "#1E1E1E",
-        color: "#fff"
-      });
+      showSuccess("Success!", "Event created successfully.");
     }
 
     setShowEventModal(false);
@@ -497,42 +461,12 @@ const handleSubmitEvent = async (e) => {
       errorMessage = error.response.data.message;
     }
   
-    // If we have conflicting events, provide option to view them
+    // Resource conflicts list the bookings that overlap
     if (errorStatus === "resource_conflict" && error.response?.data?.conflictingEvents) {
-      Swal.fire({
-        title: "Resource Conflict",
-        text: errorMessage,
-        icon: "warning",
-        background: "#1E1E1E",
-        color: "#fff",
-        showCancelButton: true,
-        confirmButtonText: "View Conflicts",
-        cancelButtonText: "OK"
-      }).then((result) => {
-        if (result.isConfirmed && error.response?.data?.conflictingEvents.length > 0) {
-          let conflicts = error.response.data.conflictingEvents;
-          let conflictsList = conflicts.map(event =>
-            `${event.title} - ${format(new Date(event.startDateTime), "MMM d, h:mm a")} to ${format(new Date(event.endDateTime), "h:mm a")}`
-          ).join("\n");
-  
-          Swal.fire({
-            title: "Conflicting Reservations",
-            text: conflictsList,
-            icon: "info",
-            background: "#1E1E1E",
-            color: "#fff"
-          });
-        }
-      });
+      showWarning("Resource conflict", [errorMessage, describeConflicts(error.response.data.conflictingEvents)].filter(Boolean).join("\n\n"));
     } else {
       // For all other errors, show a simple error message
-      Swal.fire({
-        title: "Error!",
-        text: errorMessage,
-        icon: "error",
-        background: "#1E1E1E",
-        color: "#fff"
-      });
+      showError("Error!", errorMessage);
     }
   }
 };
@@ -541,44 +475,21 @@ const handleDeleteEvent = async () => {
   try {
     if (!selectedEvent) return;
     
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-      background: "#1E1E1E",
-      color: "#fff",
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3baca5"
-    });
-    
-    if (result.isConfirmed) {
+    const confirmed = await confirmAction("Delete this event?", "It is removed for everyone invited. This cannot be undone.", "Delete event");
+
+    if (confirmed) {
       // Get user ID from the state instead of localStorage
       const userId = user?.id;
       
       if (!userId) {
-        Swal.fire({
-          title: "Error!",
-          text: "User authentication error. Please try logging in again.",
-          icon: "error",
-          background: "#1E1E1E",
-          color: "#fff"
-        });
+        showError("Error!", "User authentication error. Please try logging in again.");
         return;
       }
       
       await api.delete(`${API_BASE_URL}/event/${selectedEvent._id}`, {
               });
       
-      Swal.fire({
-        title: "Deleted!",
-        text: "Event has been deleted.",
-        icon: "success",
-        background: "#1E1E1E",
-        color: "#fff"
-      });
+      showSuccess("Deleted!", "Event has been deleted.");
       
       setShowEventModal(false);
       fetchEvents();
@@ -595,13 +506,7 @@ const handleDeleteEvent = async () => {
       errorMessage = error.response.data.message;
     }
     
-    Swal.fire({
-      title: "Error!",
-      text: errorMessage,
-      icon: "error",
-      background: "#1E1E1E",
-      color: "#fff"
-    });
+    showError("Error!", errorMessage);
   }
 };
 
@@ -612,13 +517,7 @@ const handleAdminReview = async (status) => {
     await api.put(`${API_BASE_URL}/event/${selectedEvent._id}/review/${status}`, {}, {
           });
     
-    Swal.fire({
-      title: "Success!",
-      text: `Event ${status === "approved" ? "approved" : "declined"} successfully.`,
-      icon: "success",
-      background: "#1E1E1E",
-      color: "#fff"
-    });
+    showSuccess("Success!", `Event ${status === "approved" ? "approved" : "declined"} successfully.`);
     
     setShowEventModal(false);
     fetchEvents();
@@ -634,13 +533,7 @@ const handleAdminReview = async (status) => {
       errorMessage = error.response.data.message;
     }
     
-    Swal.fire({
-      title: "Error!",
-      text: errorMessage,
-      icon: "error",
-      background: "#1E1E1E",
-      color: "#fff"
-    });
+    showError("Error!", errorMessage);
   }
 };
 
@@ -652,13 +545,7 @@ const handleUpdateAttendeeStatus = async (status) => {
     const userId = user?.id;
     
     if (!userId) {
-      Swal.fire({
-        title: "Error!",
-        text: "User authentication error. Please try logging in again.",
-        icon: "error",
-        background: "#1E1E1E",
-        color: "#fff"
-      });
+      showError("Error!", "User authentication error. Please try logging in again.");
       return;
     }
     
@@ -667,13 +554,7 @@ const handleUpdateAttendeeStatus = async (status) => {
     }, {
           });
     
-    Swal.fire({
-      title: "Success!",
-      text: `Response updated successfully.`,
-      icon: "success",
-      background: "#1E1E1E",
-      color: "#fff"
-    });
+    showSuccess("Success!", `Response updated successfully.`);
     
     setShowEventModal(false);
     fetchEvents();
@@ -689,13 +570,7 @@ const handleUpdateAttendeeStatus = async (status) => {
       errorMessage = error.response.data.message;
     }
     
-    Swal.fire({
-      title: "Error!",
-      text: errorMessage,
-      icon: "error",
-      background: "#1E1E1E",
-      color: "#fff"
-    });
+    showError("Error!", errorMessage);
   }
 };
   
@@ -744,7 +619,7 @@ const handleUpdateAttendeeStatus = async (status) => {
       <div className="grid grid-cols-7 gap-1">
         {/* Day headers */}
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-          <div key={index} className="text-center py-2 text-gray-500 font-medium">
+          <div key={index} className="text-center py-2 text-ink-3 font-medium">
             {day}
           </div>
         ))}
@@ -764,11 +639,11 @@ const handleUpdateAttendeeStatus = async (status) => {
               key={dayIdx}
               className={`min-h-[100px] p-1 border ${
                 isSameMonth(day, monthStart)
-                  ? "border-gray-800"
-                  : "border-gray-900 bg-[#151515] opacity-50"
+                  ? "border-line"
+                  : "border-line bg-ground opacity-50"
               } ${
                 isSameDay(day, new Date())
-                  ? "bg-[#3baca5]/10 border-[#3baca5]"
+                  ? "bg-teal/10 border-teal"
                   : ""
               }`}
             >
@@ -776,8 +651,8 @@ const handleUpdateAttendeeStatus = async (status) => {
                 <span
                   className={`text-sm ${
                     isSameDay(day, new Date())
-                      ? "bg-[#3baca5] text-white rounded-full w-6 h-6 flex items-center justify-center float-right"
-                      : "text-gray-400"
+                      ? "bg-teal text-on-accent rounded-full w-6 h-6 flex items-center justify-center float-right"
+                      : "text-ink-2"
                   }`}
                 >
                   {format(day, "d")}
@@ -795,7 +670,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                   </div>
                 ))}
                 {dayEvents.length > 3 && (
-                  <div className="text-xs text-gray-500 text-center">
+                  <div className="text-xs text-ink-3 text-center">
                     +{dayEvents.length - 3} more
                   </div>
                 )}
@@ -819,17 +694,17 @@ const handleUpdateAttendeeStatus = async (status) => {
       <div className="overflow-x-auto">
         <div className="grid grid-cols-8 min-w-[900px]">
           {/* Header with times and days */}
-          <div className="border-b border-r border-gray-800 p-2"></div>
+          <div className="border-b border-r border-line p-2"></div>
           {days.map((day, idx) => (
             <div 
               key={idx} 
-              className={`border-b border-r border-gray-800 p-2 text-center ${
-                isSameDay(day, new Date()) ? "bg-[#3baca5]/10" : ""
+              className={`border-b border-r border-line p-2 text-center ${
+                isSameDay(day, new Date()) ? "bg-teal/10" : ""
               }`}
             >
               <div className="font-medium">{format(day, "EEE")}</div>
               <div className={`text-sm ${
-                isSameDay(day, new Date()) ? "text-[#3baca5]" : "text-gray-400"
+                isSameDay(day, new Date()) ? "text-teal" : "text-ink-2"
               }`}>
                 {format(day, "d MMM")}
               </div>
@@ -839,7 +714,7 @@ const handleUpdateAttendeeStatus = async (status) => {
           {/* Time slots */}
           {timeSlots.map((hour) => (
             <Fragment key={hour}>
-              <div className="border-r border-b border-gray-800 p-2 text-right text-gray-500">
+              <div className="border-r border-b border-line p-2 text-right text-ink-3">
                 {hour}:00
               </div>
               
@@ -860,7 +735,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                 return (
                   <div 
                     key={dayIdx} 
-                    className="border-r border-b border-gray-800 p-1 relative"
+                    className="border-r border-b border-line p-1 relative"
                   >
                     {hourEvents.map((event, idx) => (
                       <div
@@ -896,57 +771,57 @@ const handleUpdateAttendeeStatus = async (status) => {
     return (
       <div className="space-y-4">
         {Object.keys(eventsByDate).length === 0 && (
-          <div className="text-center text-gray-500 py-10">
+          <div className="text-center text-ink-3 py-10">
             No events found for the selected filters
           </div>
         )}
         
         {Object.keys(eventsByDate).sort().map(date => (
-          <div key={date} className="border border-gray-800 rounded-lg overflow-hidden">
-            <div className="bg-[#1A1A1A] p-3 border-b border-gray-800">
+          <div key={date} className="border border-line rounded-lg overflow-hidden">
+            <div className="bg-panel p-3 border-b border-line">
               <div className="font-medium">
                 {format(new Date(date), "EEEE, MMMM d, yyyy")}
               </div>
             </div>
-            <div className="divide-y divide-gray-800">
+            <div className="divide-y divide-line">
               {eventsByDate[date].sort((a, b) => 
                 new Date(a.startDateTime) - new Date(b.startDateTime)
               ).map(event => (
                 <div 
                   key={event._id} 
-                  className="p-3 hover:bg-[#1A1A1A] cursor-pointer"
+                  className="p-3 hover:bg-sunk cursor-pointer"
                   onClick={() => handleEventClick(event)}
                 >
                   <div className="flex items-start">
                     <div className={`p-2 rounded-lg mr-3 ${eventTypeColors[event.eventType]}`}>
-                      {event.eventType === "meeting" && <Users className="h-5 w-5 text-blue-400" />}
-                      {event.eventType === "mission" && <Briefcase className="h-5 w-5 text-purple-400" />}
-                      {event.eventType === "resourceReservation" && <Wrench className="h-5 w-5 text-[#3baca5]" />}
+                      {event.eventType === "meeting" && <Users className="h-5 w-5 text-blue" />}
+                      {event.eventType === "mission" && <Briefcase className="h-5 w-5 text-violet" />}
+                      {event.eventType === "resourceReservation" && <Wrench className="h-5 w-5 text-teal" />}
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between">
                         <div className="font-medium">{event.title}</div>
                         <div className={`text-xs px-2 py-1 rounded-full ${
-                          event.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
-                          event.status === "approved" ? "bg-green-500/20 text-green-400" :
-                          "bg-red-500/20 text-red-400"
+                          event.status === "pending" ? "bg-amber/10 text-amber" :
+                          event.status === "approved" ? "bg-teal/10 text-teal" :
+                          "bg-red/10 text-red"
                         }`}>
                           {event.status}
                         </div>
                       </div>
-                      <div className="text-sm text-gray-400 flex items-center mt-1">
+                      <div className="text-sm text-ink-2 flex items-center mt-1">
                         <Clock className="h-3 w-3 mr-1" />
                         {format(parseISO(event.startDateTime), "HH:mm")} - 
                         {format(parseISO(event.endDateTime), "HH:mm")}
                       </div>
                       {event.location && (
-                        <div className="text-sm text-gray-400 flex items-center mt-1">
+                        <div className="text-sm text-ink-2 flex items-center mt-1">
                           <MapPin className="h-3 w-3 mr-1" />
                           {event.location}
                         </div>
                       )}
                       {event.resourceType && (
-                        <div className="text-sm text-gray-400 flex items-center mt-1">
+                        <div className="text-sm text-ink-2 flex items-center mt-1">
                           {resourceTypeIcons[event.resourceType]}
                           <span className="ml-1">
                             {event.resourceType} {event.resourceId && `(${event.resourceId})`}
@@ -966,30 +841,29 @@ const handleUpdateAttendeeStatus = async (status) => {
 
   return (
     <div className="relative min-h-screen">
-      <CircuitPattern />
       
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center relative z-10">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1 flex items-center">
-            <Calendar className="h-6 w-6 mr-2 text-[#3baca5]" />
+          <h1 className="text-2xl font-bold text-ink mb-1 flex items-center">
+            <Calendar className="h-6 w-6 mr-2 text-teal" />
             Calendar Manager
           </h1>
-          <p className="text-gray-400">Schedule and manage events, reservations and missions</p>
+          <p className="text-ink-2">Schedule and manage events, reservations and missions</p>
         </div>
         
         <div className="flex mt-4 sm:mt-0 space-x-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center px-3 py-2 rounded-lg bg-[#242424] hover:bg-[#2A2A2A] transition-colors duration-200"
+            className="flex items-center px-3 py-2 rounded-lg bg-raise hover:bg-sunk transition-colors duration-200"
           >
-            <Filter className="h-4 w-4 mr-2 text-[#3baca5]" />
+            <Filter className="h-4 w-4 mr-2 text-teal" />
             <span>Filters</span>
           </button>
           
           <button
             onClick={handleCreateEvent}
-            className="flex items-center px-3 py-2 rounded-lg bg-[#3baca5] hover:bg-[#2c8c86] text-white transition-colors duration-200"
+            className="flex items-center px-3 py-2 rounded-lg bg-teal hover:bg-teal-hi text-on-accent transition-colors duration-200"
           >
             <Plus className="h-4 w-4 mr-2" />
             <span>Create Event</span>
@@ -999,13 +873,13 @@ const handleUpdateAttendeeStatus = async (status) => {
       
       {/* Filters */}
       {showFilters && (
-        <div className="bg-[#1A1A1A] border border-gray-800 rounded-lg p-4 mb-4 relative z-10">
+        <div className="bg-panel border border-line rounded-lg p-4 mb-4 relative z-10">
           <h3 className="text-lg font-medium mb-3">Filters</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Event Type Filter */}
             <div>
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Event Type</h4>
+              <h4 className="text-sm font-medium text-ink-2 mb-2">Event Type</h4>
               <div className="space-y-2">
                 {["meeting", "mission", "resourceReservation"].map(type => (
                   <label key={type} className="flex items-center cursor-pointer">
@@ -1017,11 +891,11 @@ const handleUpdateAttendeeStatus = async (status) => {
                     />
                     <div className={`h-4 w-4 rounded border mr-2 ${
                       filters.eventType.includes(type) 
-                        ? "bg-[#3baca5] border-[#3baca5]" 
-                        : "border-gray-600"
+                        ? "bg-teal border-teal" 
+                        : "border-line-2"
                     }`}>
                       {filters.eventType.includes(type) && (
-                        <CheckCircle className="h-3 w-3 text-white" />
+                        <CheckCircle className="h-3 w-3 text-ink" />
                       )}
                     </div>
                     <span className="capitalize">{type}</span>
@@ -1032,7 +906,7 @@ const handleUpdateAttendeeStatus = async (status) => {
             
            {/* Status Filter */}
            <div>
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Status</h4>
+              <h4 className="text-sm font-medium text-ink-2 mb-2">Status</h4>
               <div className="space-y-2">
                 {["pending", "approved", "declined"].map(status => (
                   <label key={status} className="flex items-center cursor-pointer">
@@ -1044,11 +918,11 @@ const handleUpdateAttendeeStatus = async (status) => {
                     />
                     <div className={`h-4 w-4 rounded border mr-2 ${
                       filters.status.includes(status) 
-                        ? "bg-[#3baca5] border-[#3baca5]" 
-                        : "border-gray-600"
+                        ? "bg-teal border-teal" 
+                        : "border-line-2"
                     }`}>
                       {filters.status.includes(status) && (
-                        <CheckCircle className="h-3 w-3 text-white" />
+                        <CheckCircle className="h-3 w-3 text-ink" />
                       )}
                     </div>
                     <span className="capitalize">{status}</span>
@@ -1059,7 +933,7 @@ const handleUpdateAttendeeStatus = async (status) => {
             
             {/* Department Filter */}
             <div>
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Department</h4>
+              <h4 className="text-sm font-medium text-ink-2 mb-2">Department</h4>
               <div className="space-y-2">
                 {departments.map(dept => (
                   <label key={dept._id} className="flex items-center cursor-pointer">
@@ -1071,11 +945,11 @@ const handleUpdateAttendeeStatus = async (status) => {
                     />
                     <div className={`h-4 w-4 rounded border mr-2 ${
                       filters.department.includes(dept._id) 
-                        ? "bg-[#3baca5] border-[#3baca5]" 
-                        : "border-gray-600"
+                        ? "bg-teal border-teal" 
+                        : "border-line-2"
                     }`}>
                       {filters.department.includes(dept._id) && (
-                        <CheckCircle className="h-3 w-3 text-white" />
+                        <CheckCircle className="h-3 w-3 text-ink" />
                       )}
                     </div>
                     <span>{dept.name}</span>
@@ -1092,7 +966,7 @@ const handleUpdateAttendeeStatus = async (status) => {
         <div className="flex items-center space-x-4 mb-4 sm:mb-0">
           <button
             onClick={handlePrevMonth}
-            className="p-2 rounded-lg bg-[#242424] hover:bg-[#2A2A2A] transition-colors duration-200"
+            className="p-2 rounded-lg bg-raise hover:bg-sunk transition-colors duration-200"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -1105,26 +979,26 @@ const handleUpdateAttendeeStatus = async (status) => {
           
           <button
             onClick={handleNextMonth}
-            className="p-2 rounded-lg bg-[#242424] hover:bg-[#2A2A2A] transition-colors duration-200"
+            className="p-2 rounded-lg bg-raise hover:bg-sunk transition-colors duration-200"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
           
           <button
             onClick={() => setCurrentDate(new Date())}
-            className="px-3 py-1 text-sm rounded-lg bg-[#242424] hover:bg-[#2A2A2A] transition-colors duration-200"
+            className="px-3 py-1 text-sm rounded-lg bg-raise hover:bg-sunk transition-colors duration-200"
           >
             Today
           </button>
         </div>
         
-        <div className="flex space-x-1 bg-[#1A1A1A] p-1 rounded-lg">
+        <div className="flex space-x-1 bg-panel p-1 rounded-lg">
           <button
             onClick={() => setViewMode("month")}
             className={`p-2 rounded-lg ${
               viewMode === "month" 
-                ? "bg-[#3baca5] text-white" 
-                : "hover:bg-[#242424]"
+                ? "bg-teal text-on-accent" 
+                : "hover:bg-sunk"
             }`}
           >
             <Calendar className="h-5 w-5" />
@@ -1134,8 +1008,8 @@ const handleUpdateAttendeeStatus = async (status) => {
             onClick={() => setViewMode("week")}
             className={`p-2 rounded-lg ${
               viewMode === "week" 
-                ? "bg-[#3baca5] text-white" 
-                : "hover:bg-[#242424]"
+                ? "bg-teal text-on-accent" 
+                : "hover:bg-sunk"
             }`}
           >
             <span className="w-5 h-5 flex items-center justify-center font-mono">7</span>
@@ -1145,8 +1019,8 @@ const handleUpdateAttendeeStatus = async (status) => {
             onClick={() => setViewMode("list")}
             className={`p-2 rounded-lg ${
               viewMode === "list" 
-                ? "bg-[#3baca5] text-white" 
-                : "hover:bg-[#242424]"
+                ? "bg-teal text-on-accent" 
+                : "hover:bg-sunk"
             }`}
           >
             <List className="h-5 w-5" />
@@ -1155,10 +1029,10 @@ const handleUpdateAttendeeStatus = async (status) => {
       </div>
       
       {/* Calendar Content */}
-      <div className="bg-[#1A1A1A] border border-gray-800 rounded-lg p-4 relative z-10">
+      <div className="bg-panel border border-line rounded-lg p-4 relative z-10">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3baca5]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal"></div>
           </div>
         ) : (
           <>
@@ -1171,18 +1045,18 @@ const handleUpdateAttendeeStatus = async (status) => {
       
       {/* Event Modal */}
       {showEventModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A1A] rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-800">
+        <div className="fixed inset-0 bg-scrim flex items-center justify-center z-50 p-4">
+          <div className="bg-panel rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-line">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold">
                   {selectedEvent ? "Edit Event" : "Create New Event"}
                 </h2>
                 <button
                   onClick={() => setShowEventModal(false)}
-                  className="p-1 hover:bg-[#242424] rounded-full"
+                  className="p-1 hover:bg-sunk rounded-full"
                 >
-                  <XCircle className="h-6 w-6 text-gray-400" />
+                  <XCircle className="h-6 w-6 text-ink-2" />
                 </button>
               </div>
             </div>
@@ -1200,24 +1074,24 @@ const handleUpdateAttendeeStatus = async (status) => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <p className="text-gray-400 flex items-center">
+                      <p className="text-ink-2 flex items-center">
                         <Calendar className="h-4 w-4 mr-2" />
                         {format(parseISO(selectedEvent.startDateTime), "EEEE, MMMM d, yyyy")}
                       </p>
-                      <p className="text-gray-400 flex items-center mt-2">
+                      <p className="text-ink-2 flex items-center mt-2">
                         <Clock className="h-4 w-4 mr-2" />
                         {format(parseISO(selectedEvent.startDateTime), "h:mm a")} - 
                         {format(parseISO(selectedEvent.endDateTime), "h:mm a")}
                       </p>
                       
                       {selectedEvent.location && (
-                        <p className="text-gray-400 flex items-center mt-2">
+                        <p className="text-ink-2 flex items-center mt-2">
                           <MapPin className="h-4 w-4 mr-2" />
                           {selectedEvent.location}
                         </p>
                       )}
                       {selectedEvent.createdBy && (
-                      <p className="text-gray-400 flex items-center mt-2">
+                      <p className="text-ink-2 flex items-center mt-2">
                         <User className="h-4 w-4 mr-2" />
                         Created by: {selectedEvent.createdBy.firstName} {selectedEvent.createdBy.lastName}
                       </p>
@@ -1226,7 +1100,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                     
                     <div>
                     {selectedEvent.eventType === "resourceReservation" && (
-                    <p className="text-gray-400 flex items-center">
+                    <p className="text-ink-2 flex items-center">
                       {/* Try both resource.type and resourceType */}
                       {resourceTypeIcons[selectedEvent.resource?.type || selectedEvent.resourceType] || <Wrench className="h-4 w-4 mr-2" />}
                       <span className="ml-2 capitalize">
@@ -1237,17 +1111,17 @@ const handleUpdateAttendeeStatus = async (status) => {
                   )}
                       
                       {selectedEvent.eventType === "mission" && selectedEvent.destination && (
-                        <p className="text-gray-400 flex items-center">
+                        <p className="text-ink-2 flex items-center">
                           <MapPin className="h-4 w-4 mr-2" />
                           Destination: {selectedEvent.destination}
                         </p>
                       )}
                       
-                      <p className="text-gray-400 flex items-center mt-2">
+                      <p className="text-ink-2 flex items-center mt-2">
                         <span className={`w-4 h-4 rounded-full mr-2 ${
-                          selectedEvent.eventType === "meeting" ? "bg-blue-500" :
-                          selectedEvent.eventType === "mission" ? "bg-purple-500" :
-                          "bg-[#3baca5]"
+                          selectedEvent.eventType === "meeting" ? "bg-blue" :
+                          selectedEvent.eventType === "mission" ? "bg-violet" :
+                          "bg-teal"
                         }`}></span>
                         <span className="capitalize">{selectedEvent.eventType}</span>
                       </p>
@@ -1256,8 +1130,8 @@ const handleUpdateAttendeeStatus = async (status) => {
                   
                   {selectedEvent.description && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-400 mb-1">Description</h4>
-                      <p className="bg-[#242424] p-3 rounded-lg text-sm">
+                      <h4 className="text-sm font-medium text-ink-2 mb-1">Description</h4>
+                      <p className="bg-raise p-3 rounded-lg text-sm">
                         {selectedEvent.description}
                       </p>
                     </div>
@@ -1265,8 +1139,8 @@ const handleUpdateAttendeeStatus = async (status) => {
                   
                   {selectedEvent.usersInvolved && selectedEvent.usersInvolved.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-gray-400 mb-2">Participants</h4>
-                      <div className="bg-[#242424] p-3 rounded-lg">
+                      <h4 className="text-sm font-medium text-ink-2 mb-2">Participants</h4>
+                      <div className="bg-raise p-3 rounded-lg">
                         <div className="flex flex-wrap gap-2">
                           {selectedEvent.usersInvolved.map((user, idx) => {
                             const userData = usersList.find(u => u._id === user.userId._id || u._id === user.userId);
@@ -1274,9 +1148,9 @@ const handleUpdateAttendeeStatus = async (status) => {
                               <div 
                                 key={idx} 
                                 className={`text-xs px-3 py-1 rounded-full inline-flex items-center ${
-                                  user.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
-                                  user.status === "accepted" ? "bg-green-500/20 text-green-400" :
-                                  "bg-red-500/20 text-red-400"
+                                  user.status === "pending" ? "bg-amber/10 text-amber" :
+                                  user.status === "accepted" ? "bg-teal/10 text-teal" :
+                                  "bg-red/10 text-red"
                                 }`}
                               >
                                 {userData.firstName} {userData.lastName}
@@ -1297,7 +1171,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                       <div className="flex space-x-3">
                       <button
                         onClick={() => handleEditEvent(selectedEvent)} // Trigger handleEditEvent instead of manually setting state
-                        className="px-4 py-2 rounded-lg bg-[#3baca5] hover:bg-[#2c8c86] text-white"
+                        className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-hi text-on-accent"
                       >
                         Edit Event
                       </button>
@@ -1305,7 +1179,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                         
                         <button
                           onClick={handleDeleteEvent}
-                          className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          className="px-4 py-2 rounded-lg bg-red/10 text-red hover:bg-red/15"
                         >
                           Delete
                         </button>
@@ -1319,14 +1193,14 @@ const handleUpdateAttendeeStatus = async (status) => {
                       <div className="flex space-x-3">
                         <button
                           onClick={() => handleUpdateAttendeeStatus("accepted")}
-                          className="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                          className="px-4 py-2 rounded-lg bg-teal/10 text-teal hover:bg-teal/15"
                         >
                           Accept
                         </button>
                         
                         <button
                           onClick={() => handleUpdateAttendeeStatus("declined")}
-                          className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          className="px-4 py-2 rounded-lg bg-red/10 text-red hover:bg-red/15"
                         >
                           Decline
                         </button>
@@ -1338,14 +1212,14 @@ const handleUpdateAttendeeStatus = async (status) => {
                       <div className="flex space-x-3">
                         <button
                           onClick={() => handleAdminReview("approved")}
-                          className="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                          className="px-4 py-2 rounded-lg bg-teal/10 text-teal hover:bg-teal/15"
                         >
                           Approve
                         </button>
                         
                         <button
                           onClick={() => handleAdminReview("declined")}
-                          className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          className="px-4 py-2 rounded-lg bg-red/10 text-red hover:bg-red/15"
                         >
                           Decline
                         </button>
@@ -1354,7 +1228,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                     
                     <button
                       onClick={() => setShowEventModal(false)}
-                      className="px-4 py-2 rounded-lg bg-[#242424] hover:bg-[#2A2A2A] self-end"
+                      className="px-4 py-2 rounded-lg bg-raise hover:bg-sunk self-end"
                     >
                       Close
                     </button>
@@ -1367,22 +1241,22 @@ const handleUpdateAttendeeStatus = async (status) => {
                 <form onSubmit={handleSubmitEvent}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
-                      <label className="text-sm font-medium text-gray-400 block mb-2">Title</label>
+                      <label className="text-sm font-medium text-ink-2 block mb-2">Title</label>
                       <input
                         type="text"
                         required
                         value={eventForm.title}
                         onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
-                        className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                        className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                       />
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-400 block mb-2">Event Type</label>
+                      <label className="text-sm font-medium text-ink-2 block mb-2">Event Type</label>
                       <select
                         value={eventForm.eventType}
                         onChange={(e) => setEventForm({...eventForm, eventType: e.target.value})}
-                        className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                        className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                       >
                         <option value="meeting">Meeting</option>
                         <option value="mission">Mission</option>
@@ -1391,11 +1265,11 @@ const handleUpdateAttendeeStatus = async (status) => {
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-400 block mb-2">Visibility</label>
+                      <label className="text-sm font-medium text-ink-2 block mb-2">Visibility</label>
                       <select
                         value={eventForm.visibility}
                         onChange={(e) => setEventForm({...eventForm, visibility: e.target.value})}
-                        className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                        className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                       >
                         <option value="public">Public</option>
                         <option value="private">Private</option>
@@ -1404,7 +1278,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                     </div>
                     
                     <div>
-                      <label className="text-sm font-medium text-gray-400 block mb-2">Start Date & Time</label>
+                      <label className="text-sm font-medium text-ink-2 block mb-2">Start Date & Time</label>
                       <DatePicker
                         selected={startDate}
                         onChange={(date) => {
@@ -1413,11 +1287,11 @@ const handleUpdateAttendeeStatus = async (status) => {
                         }}
                         showTimeSelect
                         dateFormat="MMMM d, yyyy h:mm aa"
-                        className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                        className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-400 block mb-2">End Date & Time</label>
+                      <label className="text-sm font-medium text-ink-2 block mb-2">End Date & Time</label>
                       <DatePicker
                         selected={endDate}
                         onChange={(date) => {
@@ -1426,26 +1300,26 @@ const handleUpdateAttendeeStatus = async (status) => {
                         }}
                         showTimeSelect
                         dateFormat="MMMM d, yyyy h:mm aa"
-                        className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                        className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                       />
                     </div>
                     <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-gray-400 block mb-2">Description</label>
+                    <label className="text-sm font-medium text-ink-2 block mb-2">Description</label>
                     <textarea
                       value={eventForm.description}
                       onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
-                      className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5] min-h-[100px]"
+                      className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal min-h-[100px]"
                     ></textarea>
                   </div>
                     
                     {eventForm.eventType === "mission" && (
                       <div>
-                        <label className="text-sm font-medium text-gray-400 block mb-2">Destination</label>
+                        <label className="text-sm font-medium text-ink-2 block mb-2">Destination</label>
                         <input
                           type="text"
                           value={eventForm.destination}
                           onChange={(e) => setEventForm({...eventForm, destination: e.target.value})}
-                          className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                          className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                         />
                       </div>
                     )}
@@ -1453,13 +1327,13 @@ const handleUpdateAttendeeStatus = async (status) => {
                     {eventForm.eventType === "resourceReservation" && (
                       <>
                         <div>
-                          <label className="text-sm font-medium text-gray-400 block mb-2">
+                          <label className="text-sm font-medium text-ink-2 block mb-2">
                             Resource Type
                           </label>
                           <select
                             value={eventForm.resourceType}
                             onChange={(e) => setEventForm({ ...eventForm, resourceType: e.target.value })}
-                            className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                            className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                           >
                             <option value="">Select Resource Type</option>
                             <option value="desktop">Desktop</option>
@@ -1473,25 +1347,25 @@ const handleUpdateAttendeeStatus = async (status) => {
                         </div>
 
                         <div>
-                          <label className="text-sm font-medium text-gray-400 block mb-2">Resource</label>
+                          <label className="text-sm font-medium text-ink-2 block mb-2">Resource</label>
                           <div className="relative">
                             {loadingResources ? (
-                              <div className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 flex items-center">
-                                <span className="text-gray-500">Loading resources...</span>
+                              <div className="w-full bg-raise border border-line rounded-lg px-3 py-2 flex items-center">
+                                <span className="text-ink-3">Loading resources...</span>
                               </div>
                             ) : (
                               <>
                                 <select
                                   value={eventForm.resourceId}
                                   onChange={(e) => setEventForm({ ...eventForm, resourceId: e.target.value })}
-                                  className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                                  className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                                 >
                                   <option value="">Select a resource</option>
                                   {resourcesList.map(resource => (
                                   <option 
                                     key={resource._id} 
                                     value={resource._id}
-                                    className={resource.status === 'maintenance' ? 'text-yellow-500' : 'text-green-500'}
+                                    className={resource.status === 'maintenance' ? 'text-amber' : 'text-teal'}
                                   >
                                     {resource.name} {resource.identifier ? `(${resource.identifier})` : ''}
                                     {resource.status === 'maintenance' ? ' - Under Maintenance' : ''}
@@ -1502,11 +1376,11 @@ const handleUpdateAttendeeStatus = async (status) => {
                                 {eventForm.resourceId && eventForm.startDateTime && eventForm.endDateTime && (
                                   <div className="mt-2 px-2 py-1 rounded text-sm">
                                     {loadingResources ? (
-                                      <span className="text-gray-400">Checking availability...</span>
+                                      <span className="text-ink-2">Checking availability...</span>
                                     ) : (
                                       <>
                                         {isResourceAvailable ? (
-                                          <div className="flex items-center text-green-500">
+                                          <div className="flex items-center text-teal">
                                             <svg
                                               xmlns="http://www.w3.org/2000/svg"
                                               className="h-4 w-4 mr-1"
@@ -1524,7 +1398,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                                             <span>Resource is available for the selected time</span>
                                           </div>
                                         ) : (
-                                          <div className="flex items-center text-red-500">
+                                          <div className="flex items-center text-red">
                                             <svg
                                               xmlns="http://www.w3.org/2000/svg"
                                               className="h-4 w-4 mr-1"
@@ -1554,15 +1428,9 @@ const handleUpdateAttendeeStatus = async (status) => {
                                                     )
                                                     .join("\n");
 
-                                                  Swal.fire({
-                                                    title: "Conflicting Reservations",
-                                                    text: conflictsList,
-                                                    icon: "info",
-                                                    background: "#1E1E1E",
-                                                    color: "#fff",
-                                                  });
+                                                  showInfo("Conflicting Reservations", conflictsList);
                                                 }}
-                                                className="ml-2 text-xs underline hover:text-red-400"
+                                                className="ml-2 text-xs underline hover:text-red"
                                               >
                                                 View conflicts
                                               </button>
@@ -1577,7 +1445,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                             )}
                           </div>
                           {availableResourcesCount ===0 && resourcesList.length > 0 && (
-                            <p className="text-xs text-green-500 mt-1">
+                            <p className="text-xs text-teal mt-1">
                               {availableResourcesCount} of {resourcesList.length} resources available
                             </p>
                           )}
@@ -1587,18 +1455,18 @@ const handleUpdateAttendeeStatus = async (status) => {
                     {(eventForm.eventType === "meeting" )&& (
                     
                        <div>
-                       <label className="text-sm font-medium text-gray-400 block mb-2">Location</label>
+                       <label className="text-sm font-medium text-ink-2 block mb-2">Location</label>
                        <input
                          type="text"
                          value={eventForm.location}
                          onChange={(e) => setEventForm({...eventForm, location: e.target.value})}
-                         className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5]"
+                         className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal"
                        />
                      </div>
                     )}
                     
                     <div className="md:col-span-2">
-                      <label className="text-sm font-medium text-gray-400 block mb-2">Invite Users</label>
+                      <label className="text-sm font-medium text-ink-2 block mb-2">Invite Users</label>
                       <select
                         multiple
                         value={eventForm.usersInvolved}
@@ -1606,7 +1474,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                           const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
                           setEventForm({...eventForm, usersInvolved: selectedOptions});
                         }}
-                        className="w-full bg-[#242424] border border-gray-800 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#3baca5] min-h-[120px]"
+                        className="w-full bg-panel border border-edge rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal min-h-[120px]"
                       >
                         {usersList.map(user => (
                           <option key={user._id} value={user._id}>
@@ -1614,7 +1482,7 @@ const handleUpdateAttendeeStatus = async (status) => {
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple users</p>
+                      <p className="text-xs text-ink-3 mt-1">Hold Ctrl/Cmd to select multiple users</p>
                     </div>
                   </div>
                   
@@ -1622,14 +1490,14 @@ const handleUpdateAttendeeStatus = async (status) => {
                     <button
                       type="button"
                       onClick={() => setShowEventModal(false)}
-                      className="px-4 py-2 rounded-lg bg-[#242424] hover:bg-[#2A2A2A]"
+                      className="px-4 py-2 rounded-lg bg-raise hover:bg-sunk"
                     >
                       Cancel
                     </button>
                     
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-[#3baca5] hover:bg-[#2c8c86] text-white"
+                      className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-hi text-on-accent"
                     >
                       {selectedEvent ? "Update Event" : "Create Event"}
                     </button>

@@ -6,11 +6,11 @@ const PrivateRoute = ({ allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="p-6 bg-gray-800 rounded-lg shadow-lg border border-[#23A49B]/30">
+      <div className="min-h-screen bg-ground flex items-center justify-center">
+        <div className="p-6 bg-raise rounded-lg shadow-lg border border-line">
           <div className="flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-t-[#23A49B] border-[#23A49B]/30 rounded-full animate-spin mb-4"></div>
-            <p className="text-white text-lg">Initializing system...</p>
+            <div className="w-16 h-16 border-4 border-t-teal border-line rounded-full animate-spin mb-4"></div>
+            <p className="text-ink text-lg">Initializing system...</p>
           </div>
         </div>
       </div>

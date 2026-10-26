@@ -99,17 +99,17 @@ const LeaveRequestsPage = () => {
   };
 
   return (
-    <div className="p-3 bg-[#1a1a1a] flex flex-col rounded-xl border border-[#333333] shadow-lg">
+    <div className="p-3 bg-panel flex flex-col rounded-xl border border-line shadow-lg">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center">
-          <FaRobot className="text-[#33adb4] text-xl sm:text-2xl mr-2" />
-          <h1 className="text-[#33adb4] text-xl sm:text-2xl font-semibold">{config.title}</h1>
+          <FaRobot className="text-teal text-xl sm:text-2xl mr-2" />
+          <h1 className="text-teal text-xl sm:text-2xl font-semibold">{config.title}</h1>
         </div>
         {config.canCreate && (
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="px-3 py-2 bg-[#33adb4] text-white rounded flex items-center transition-all hover:bg-[#2a8c92] shadow-lg text-sm sm:text-base w-full sm:w-auto justify-center"
+            className="px-3 py-2 bg-teal text-on-accent rounded flex items-center transition-all hover:bg-teal-hi shadow-lg text-sm sm:text-base w-full sm:w-auto justify-center"
           >
             <FaCalendarPlus className="mr-2" />
             Request Leave
@@ -118,7 +118,7 @@ const LeaveRequestsPage = () => {
       </div>
 
       {config.tabs.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-4 border-b border-[#333]" role="tablist">
+        <div className="flex flex-wrap gap-2 mb-4 border-b border-line" role="tablist">
           {config.tabs.map((t) => (
             <button
               key={t.key}
@@ -127,7 +127,7 @@ const LeaveRequestsPage = () => {
               aria-selected={t.key === tab.key}
               onClick={() => setTabKey(t.key)}
               className={`px-4 py-2 text-sm -mb-px border-b-2 transition-colors ${
-                t.key === tab.key ? "border-[#33adb4] text-[#33adb4]" : "border-transparent text-gray-400 hover:text-gray-200"
+                t.key === tab.key ? "border-teal text-teal" : "border-transparent text-ink-2 hover:text-ink"
               }`}
             >
               {t.label}
@@ -143,15 +143,15 @@ const LeaveRequestsPage = () => {
             value={filters.search}
             onChange={(e) => filters.setSearch(e.target.value)}
             placeholder={showEmployee ? "Search by employee, reviewer or leave type…" : "Search by reviewer or leave type…"}
-            className="w-full py-2 px-4 pl-10 bg-[#222] border border-[#444] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#33adb4] focus:border-transparent"
+            className="w-full py-2 px-4 pl-10 bg-panel border border-edge rounded-lg text-ink focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
           />
-          <FaSearch className="absolute left-3 top-3 text-gray-400" />
+          <FaSearch className="absolute left-3 top-3 text-ink-2" />
         </div>
         <select
           value={filters.status}
           onChange={(e) => filters.setStatus(e.target.value)}
           aria-label="Filter by status"
-          className="py-2 px-3 bg-[#222] border border-[#444] rounded-lg text-white text-sm"
+          className="py-2 px-3 bg-raise border border-line-2 rounded-lg text-ink text-sm"
         >
           <option value="all">All statuses</option>
           {LEAVE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -161,7 +161,7 @@ const LeaveRequestsPage = () => {
             value={filters.leaveType}
             onChange={(e) => filters.setLeaveType(e.target.value)}
             aria-label="Filter by leave type"
-            className="flex-1 py-2 px-3 bg-[#222] border border-[#444] rounded-lg text-white text-sm"
+            className="flex-1 py-2 px-3 bg-raise border border-line-2 rounded-lg text-ink text-sm"
           >
             <option value="all">All types</option>
             {LEAVE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -170,7 +170,7 @@ const LeaveRequestsPage = () => {
             value={filters.sortOrder}
             onChange={(e) => filters.setSortOrder(e.target.value)}
             aria-label="Sort order"
-            className="py-2 px-3 bg-[#222] border border-[#444] rounded-lg text-white text-sm"
+            className="py-2 px-3 bg-raise border border-line-2 rounded-lg text-ink text-sm"
           >
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -178,16 +178,16 @@ const LeaveRequestsPage = () => {
         </div>
       </div>
 
-      <div className="mb-3 text-sm text-gray-400 flex items-center justify-between">
+      <div className="mb-3 text-sm text-ink-2 flex items-center justify-between">
         <span>{filtered.length} {filtered.length === 1 ? "request" : "requests"}</span>
         {(filters.search || filters.status !== "all" || filters.leaveType !== "all") && (
-          <button type="button" onClick={filters.clearFilters} className="text-[#33adb4] hover:underline">
+          <button type="button" onClick={filters.clearFilters} className="text-teal hover:underline">
             Clear filters
           </button>
         )}
       </div>
 
-      {error && <div className="mb-3 p-3 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>}
+      {error && <div className="mb-3 p-3 rounded bg-red/10 border border-red/30 text-red text-sm">{error}</div>}
 
       <LeaveRequestTable
         items={pageItems}

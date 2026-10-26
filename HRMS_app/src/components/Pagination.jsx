@@ -22,16 +22,16 @@ const Pagination = ({ page, totalPages, setPage, total, pageSize, noun = "items"
   const first = (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, total);
   const navButton = (disabled) =>
-    `p-2 rounded-lg ${disabled ? "bg-[#333] text-gray-500 cursor-not-allowed" : "bg-[#31638a] text-white hover:bg-[#264e6e] transition-colors"}`;
+    `p-2 rounded-lg ${disabled ? "bg-sunk text-ink-3 cursor-not-allowed" : "bg-teal text-on-accent hover:bg-teal-hi transition-colors"}`;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 px-2 text-gray-300">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 px-2 text-ink">
       <div className="text-sm">Showing {first} to {last} of {total} {noun}</div>
       <div className="flex items-center space-x-2">
         <button type="button" aria-label="Previous page" onClick={() => setPage(page - 1)} disabled={page === 1} className={navButton(page === 1)}>
           <FaChevronLeft className="w-4 h-4" />
         </button>
-        <span className="text-sm text-gray-400">Page {page} of {totalPages}</span>
+        <span className="text-sm text-ink-2">Page {page} of {totalPages}</span>
         <button type="button" aria-label="Next page" onClick={() => setPage(page + 1)} disabled={page === totalPages} className={navButton(page === totalPages)}>
           <FaChevronRight className="w-4 h-4" />
         </button>

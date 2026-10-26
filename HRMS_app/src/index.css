@@ -1,7 +1,100 @@
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-700.css";
+@import "@fontsource/ibm-plex-sans-condensed/latin-600.css";
+@import "@fontsource/ibm-plex-sans-condensed/latin-700.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* Custom scrollbar styles */
-.scrollbar {
-    @apply scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200;
+
+@layer base {
+  html {
+    background: rgb(var(--ground));
+    color: rgb(var(--ink));
+    scrollbar-color: rgb(var(--line-2)) transparent;
+    scrollbar-width: thin;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-ground text-ink font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--teal));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgb(var(--teal) / 0.25);
+  }
+
+  /* Native date and time pickers follow the theme through color-scheme. */
+  input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+@layer utilities {
+  /* Mono with aligned digits: every time, date, ID and figure. */
+  .figure {
+    font-family: theme("fontFamily.mono");
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Small uppercase mono label, as used for section keys on the concept board. */
+  .label-key {
+    font-family: theme("fontFamily.mono");
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-3));
+  }
+
+  /* Faint blueprint dot grid for preview benches and empty areas. */
+  .bg-blueprint {
+    background-image: radial-gradient(var(--grid) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+  }
+
+  /* Half-filled circle used by the "late" status glyph. */
+  .glyph-half {
+    background: linear-gradient(90deg, rgb(var(--amber)) 50%, transparent 50%);
+  }
+
+  .hatch-teal {
+    background: repeating-linear-gradient(45deg, rgb(var(--teal)) 0 2px, transparent 2px 5px);
+  }
+}
+
+/* The ENOVA logo is dark grey + teal on transparent: lift it on dark surfaces. */
+:root[data-theme="dark"] .logo-on-theme {
+  filter: brightness(1.9) saturate(0.9);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .logo-on-theme {
+    filter: brightness(1.9) saturate(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

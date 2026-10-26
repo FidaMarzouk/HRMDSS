@@ -2,7 +2,7 @@
 export const Table = ({ className, children, ...props }) => {
   return (
     <div className="w-full overflow-x-auto">
-      <table className={`min-w-full divide-y divide-gray-200 ${className || ''}`} {...props}>
+      <table className={`min-w-full divide-y divide-line ${className || ''}`} {...props}>
         {children}
       </table>
     </div>
@@ -19,7 +19,7 @@ export const TableHeader = ({ className, children, ...props }) => {
 
 export const TableBody = ({ className, children, ...props }) => {
   return (
-    <tbody className={`divide-y divide-gray-200 ${className || ''}`} {...props}>
+    <tbody className={`divide-y divide-line ${className || ''}`} {...props}>
       {children}
     </tbody>
   );

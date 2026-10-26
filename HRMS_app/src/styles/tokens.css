@@ -1,0 +1,84 @@
+/*
+ * ENOVA Pulse design tokens.
+ * Colours are RGB triplets so Tailwind can add opacity (bg-teal/10).
+ * Light ("day shift") is the default; dark ("night shift") applies when
+ * <html data-theme="dark">, or when no theme is forced and the OS prefers dark.
+ * Grey carries structure; teal marks the signal and the primary action;
+ * amber and red are kept for real exceptions.
+ */
+
+:root {
+  --ground: 238 242 241;   /* #EEF2F1 page background */
+  --panel: 255 255 255;    /* #FFFFFF cards, sidebar */
+  --raise: 246 249 248;    /* #F6F9F8 raised surfaces, popovers */
+  --sunk: 226 232 231;     /* #E2E8E7 tracks, wells, hovers */
+  --line: 214 222 221;     /* #D6DEDD hairlines */
+  --line-2: 191 202 200;   /* #BFCAC8 stronger hairlines, dividers */
+  --edge: 128 139 137;     /* #808B89 form-control borders (3:1, WCAG 1.4.11) */
+  --ink: 15 27 27;         /* #0F1B1B text */
+  --ink-2: 58 73 72;       /* #3A4948 secondary text */
+  --ink-3: 86 103 101;     /* #566765 labels, captions */
+  --teal: 11 115 106;      /* #0B736A signal, primary action (AA on every light surface) */
+  --teal-hi: 9 98 90;      /* #09625A primary hover */
+  --on-accent: 255 255 255;/* text on teal / red / amber fills */
+  --amber: 143 91 0;       /* #8F5B00 caution */
+  --red: 183 58 41;        /* #B73A29 critical */
+  /* Categorical colours, only for legacy charts and event types until they are redrawn */
+  --blue: 44 98 150;       /* #2C6296 */
+  --violet: 104 84 168;    /* #6854A8 */
+  --scrim: rgb(15 27 27 / 0.38);
+  --shadow: 0 18px 40px rgb(15 27 27 / 0.14);
+  --grid: rgb(15 27 27 / 0.07);
+  color-scheme: light;
+}
+
+/* Dark values, declared once and applied by both selectors below. */
+:root[data-theme="dark"] {
+  --ground: 13 17 18;      /* #0D1112 */
+  --panel: 20 26 27;       /* #141A1B */
+  --raise: 27 35 36;       /* #1B2324 */
+  --sunk: 10 14 15;        /* #0A0E0F */
+  --line: 37 48 49;        /* #253031 */
+  --line-2: 51 64 63;      /* #33403F */
+  --edge: 99 112 111;      /* #63706F */
+  --ink: 231 238 237;      /* #E7EEED */
+  --ink-2: 170 184 182;    /* #AAB8B6 */
+  --ink-3: 135 150 143;    /* #87968F */
+  --teal: 53 194 179;      /* #35C2B3 */
+  --teal-hi: 127 224 213;  /* #7FE0D5 */
+  --on-accent: 3 32 28;    /* #03201C */
+  --amber: 227 165 58;     /* #E3A53A */
+  --red: 240 122 110;      /* #F07A6E */
+  --blue: 122 170 222;     /* #7AAADE */
+  --violet: 170 154 230;   /* #AA9AE6 */
+  --scrim: rgb(4 7 7 / 0.66);
+  --shadow: 0 22px 50px rgb(0 0 0 / 0.5);
+  --grid: rgb(231 238 237 / 0.06);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --ground: 13 17 18;
+    --panel: 20 26 27;
+    --raise: 27 35 36;
+    --sunk: 10 14 15;
+    --line: 37 48 49;
+    --line-2: 51 64 63;
+    --edge: 99 112 111;
+    --ink: 231 238 237;
+    --ink-2: 170 184 182;
+    --ink-3: 135 150 143;
+    --teal: 53 194 179;
+    --teal-hi: 127 224 213;
+    --on-accent: 3 32 28;
+    --amber: 227 165 58;
+    --red: 240 122 110;
+    --blue: 122 170 222;
+    --violet: 170 154 230;
+    --scrim: rgb(4 7 7 / 0.66);
+    --shadow: 0 22px 50px rgb(0 0 0 / 0.5);
+    --grid: rgb(231 238 237 / 0.06);
+    color-scheme: dark;
+  }
+}

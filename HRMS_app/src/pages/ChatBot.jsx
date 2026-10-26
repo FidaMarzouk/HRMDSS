@@ -31,17 +31,17 @@ const QUICK_PROMPTS = [
   "How do I contact HR?",
 ];
 
-const scrollbarStyle = { scrollbarWidth: "thin", scrollbarColor: "#23A49B #2D3748" };
+const scrollbarStyle = { scrollbarWidth: "thin", scrollbarColor: "rgb(var(--line-2)) transparent" };
 
 // Markdown elements styled for the dark chat bubbles.
 const markdownComponents = {
   table: (props) => <div className="overflow-x-auto my-2"><table className="text-xs border-collapse" {...props} /></div>,
-  th: (props) => <th className="border border-gray-600 px-2 py-1 text-left bg-gray-800" {...props} />,
-  td: (props) => <td className="border border-gray-600 px-2 py-1 align-top" {...props} />,
+  th: (props) => <th className="border border-line-2 px-2 py-1 text-left bg-raise" {...props} />,
+  td: (props) => <td className="border border-line-2 px-2 py-1 align-top" {...props} />,
   ul: (props) => <ul className="list-disc pl-5 my-1 space-y-0.5" {...props} />,
   ol: (props) => <ol className="list-decimal pl-5 my-1 space-y-0.5" {...props} />,
   p: (props) => <p className="my-1" {...props} />,
-  a: (props) => <a className="text-[#5fd4cb] underline" target="_blank" rel="noreferrer" {...props} />,
+  a: (props) => <a className="text-teal underline" target="_blank" rel="noreferrer" {...props} />,
 };
 
 const formatTime = (timestamp) =>
@@ -146,9 +146,9 @@ const ChatBot = () => {
 
   const panelClass = isMobile
     ? isMinimized
-      ? "fixed z-50 bottom-24 right-4 left-4 h-16 bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 border border-[#23A49B]/30"
-      : "fixed z-50 bottom-0 left-0 right-0 h-[90vh] max-h-[640px] bg-gray-900 rounded-t-2xl shadow-2xl overflow-hidden transition-all duration-300 border-t border-[#23A49B]/30 flex flex-col"
-    : `fixed z-50 bottom-24 right-6 w-80 md:w-[26rem] bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 border border-[#23A49B]/30 backdrop-blur-xl flex flex-col ${
+      ? "fixed z-50 bottom-24 right-4 left-4 h-16 bg-sunk rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 border border-line"
+      : "fixed z-50 bottom-0 left-0 right-0 h-[90vh] max-h-[640px] bg-sunk rounded-t-2xl shadow-2xl overflow-hidden transition-all duration-300 border-t border-line flex flex-col"
+    : `fixed z-50 bottom-24 right-6 w-80 md:w-[26rem] bg-sunk rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 border border-line backdrop-blur-xl flex flex-col ${
         isMinimized ? "h-16" : "h-[640px] max-h-[calc(100vh-8rem)]"
       }`;
 
@@ -162,49 +162,49 @@ const ChatBot = () => {
           setIsOpen((open) => !open);
           setIsMinimized(false);
         }}
-        className="fixed z-50 bottom-6 right-6 bg-[#23A49B] text-white p-4 rounded-full shadow-lg hover:shadow-[0_0_15px_rgba(35,164,155,0.5)] duration-300 flex items-center justify-center"
+        className="fixed z-50 bottom-6 right-6 bg-teal text-on-accent p-4 rounded-full shadow-lg duration-300 flex items-center justify-center"
       >
         <Bot className="w-6 h-6" />
       </button>
 
       {isOpen && (
         <div ref={chatbotRef} className={panelClass} role="dialog" aria-label="ENOVA Assistant">
-          <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 flex items-center justify-between border-b border-[#23A49B]/30 flex-shrink-0">
+          <div className="bg-raise p-4 flex items-center justify-between border-b border-line flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-[#23A49B]/20 rounded-full flex items-center justify-center">
-                <Zap className="w-4 h-4 text-[#23A49B]" />
+              <div className="w-8 h-8 bg-teal/10 rounded-full flex items-center justify-center">
+                <Zap className="w-4 h-4 text-teal" />
               </div>
-              <h3 className="font-medium text-white">ENOVA Assistant</h3>
+              <h3 className="font-medium text-ink">ENOVA Assistant</h3>
             </div>
             <div className="flex space-x-1">
-              <button type="button" onClick={clearHistory} aria-label="Clear conversation" title="Clear conversation" className="p-1.5 hover:bg-gray-700 rounded-full">
-                <Trash2 className="w-4 h-4 text-gray-400" />
+              <button type="button" onClick={clearHistory} aria-label="Clear conversation" title="Clear conversation" className="p-1.5 hover:bg-sunk rounded-full">
+                <Trash2 className="w-4 h-4 text-ink-2" />
               </button>
-              <button type="button" onClick={() => setIsMinimized((m) => !m)} aria-label={isMinimized ? "Expand" : "Minimize"} className="p-1.5 hover:bg-gray-700 rounded-full">
-                {isMinimized ? <Plus className="w-4 h-4 text-gray-400" /> : <Minimize className="w-4 h-4 text-gray-400" />}
+              <button type="button" onClick={() => setIsMinimized((m) => !m)} aria-label={isMinimized ? "Expand" : "Minimize"} className="p-1.5 hover:bg-sunk rounded-full">
+                {isMinimized ? <Plus className="w-4 h-4 text-ink-2" /> : <Minimize className="w-4 h-4 text-ink-2" />}
               </button>
-              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close" className="p-1.5 hover:bg-gray-700 rounded-full">
-                <X className="w-4 h-4 text-gray-400" />
+              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close" className="p-1.5 hover:bg-sunk rounded-full">
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
           </div>
 
           {!isMinimized && (
             <>
-              <div className="flex-1 p-4 overflow-y-auto bg-gray-800/60 space-y-4" style={scrollbarStyle} aria-live="polite">
+              <div className="flex-1 p-4 overflow-y-auto bg-raise space-y-4" style={scrollbarStyle} aria-live="polite">
                 {conversation.map((msg, index) => (
                   <div key={index} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-[88%] p-3 rounded-lg ${
                         msg.sender === "user"
-                          ? "bg-[#23A49B] text-white rounded-tr-none"
+                          ? "bg-teal text-on-accent rounded-tr-none"
                           : msg.isError
-                            ? "bg-red-900/40 border border-red-500/30 text-gray-100 rounded-tl-none"
-                            : "bg-gray-700 text-gray-100 rounded-tl-none"
+                            ? "bg-red/10 border border-red/30 text-ink rounded-tl-none"
+                            : "bg-sunk text-ink rounded-tl-none"
                       }`}
                     >
                       <div className="flex items-center mb-1 space-x-2">
-                        {msg.sender === "user" ? <UserIcon className="w-3 h-3 text-white/80" /> : <Bot className="w-3 h-3 text-gray-300" />}
+                        {msg.sender === "user" ? <UserIcon className="w-3 h-3 text-ink" /> : <Bot className="w-3 h-3 text-ink" />}
                         <span className="text-xs opacity-70">{msg.sender === "user" ? "You" : "ENOVA Assistant"}</span>
                       </div>
                       <div className="text-sm break-words">
@@ -213,12 +213,12 @@ const ChatBot = () => {
                         </ReactMarkdown>
                       </div>
                       {msg.sources?.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-gray-600/60 flex flex-wrap gap-1">
+                        <div className="mt-2 pt-2 border-t border-line-2 flex flex-wrap gap-1">
                           {msg.sources.map((source) => (
                             <span
                               key={`${source.file}-${source.heading}`}
                               title={`${SOURCE_LABELS[source.file] || source.file} › ${source.heading}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-800 text-[11px] text-[#5fd4cb] border border-[#23A49B]/30"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-raise text-[11px] text-teal border border-line"
                             >
                               <BookOpen className="w-3 h-3" />
                               {source.heading.split(" > ").pop()}
@@ -235,11 +235,11 @@ const ChatBot = () => {
 
                 {isTyping && (
                   <div className="flex justify-start" aria-label="Assistant is typing">
-                    <div className="bg-gray-700 px-4 py-2 rounded-lg rounded-tl-none">
+                    <div className="bg-sunk px-4 py-2 rounded-lg rounded-tl-none">
                       <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+                        <div className="w-2 h-2 bg-ink-3 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-ink-3 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                        <div className="w-2 h-2 bg-ink-3 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
                       </div>
                     </div>
                   </div>
@@ -248,7 +248,7 @@ const ChatBot = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-2 bg-gray-900 border-t border-[#23A49B]/20 overflow-x-auto flex-shrink-0" style={scrollbarStyle}>
+              <div className="p-2 bg-sunk border-t border-line overflow-x-auto flex-shrink-0" style={scrollbarStyle}>
                 <div className="flex space-x-2 pb-1">
                   {QUICK_PROMPTS.map((prompt) => (
                     <button
@@ -256,7 +256,7 @@ const ChatBot = () => {
                       type="button"
                       onClick={() => sendMessage(prompt)}
                       disabled={isTyping}
-                      className="flex-shrink-0 px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-full hover:bg-gray-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+                      className="flex-shrink-0 px-3 py-1 bg-raise text-ink text-xs rounded-full hover:bg-sunk disabled:opacity-50 transition-colors whitespace-nowrap"
                     >
                       {prompt}
                     </button>
@@ -264,7 +264,7 @@ const ChatBot = () => {
                 </div>
               </div>
 
-              <div className="p-3 bg-gray-900 border-t border-[#23A49B]/20 flex-shrink-0">
+              <div className="p-3 bg-sunk border-t border-line flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <textarea
                     ref={inputRef}
@@ -274,7 +274,7 @@ const ChatBot = () => {
                     placeholder="Ask about policies, the HRMS, or your data…"
                     aria-label="Message the ENOVA Assistant"
                     rows={1}
-                    className="flex-1 bg-gray-800 text-gray-200 rounded-lg p-3 resize-none h-10 max-h-24 focus:outline-none focus:ring-1 focus:ring-[#23A49B] placeholder-gray-500 text-sm"
+                    className="flex-1 bg-panel text-ink rounded-lg p-3 resize-none h-10 max-h-24 focus:outline-none focus:ring-1 focus:ring-teal placeholder-ink-3 text-sm"
                     style={{ minHeight: "40px" }}
                   />
                   <button
@@ -283,13 +283,13 @@ const ChatBot = () => {
                     disabled={isTyping || !message.trim()}
                     aria-label="Send"
                     className={`p-2 rounded-full ${
-                      isTyping || !message.trim() ? "bg-gray-700 text-gray-500 cursor-not-allowed" : "bg-[#23A49B] text-white hover:bg-[#1b8c84]"
+                      isTyping || !message.trim() ? "bg-sunk text-ink-3 cursor-not-allowed" : "bg-teal text-on-accent hover:bg-teal-hi"
                     } transition-colors`}
                   >
                     <Send className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="mt-2 text-[11px] text-gray-500 text-center">
+                <p className="mt-2 text-[11px] text-ink-3 text-center">
                   AI answers are based on the company handbook. Confirm important decisions with HR.
                 </p>
               </div>

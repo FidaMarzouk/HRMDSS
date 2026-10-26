@@ -1,15 +1,6 @@
-import { statusColor } from "./leaveUtils";
+import { StatusPill } from "../../components/ui/status-pill";
+import { statusKind } from "./leaveUtils";
 
-const LeaveStatusBadge = ({ status }) => {
-  const color = statusColor(status);
-  return (
-    <span
-      className="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap"
-      style={{ backgroundColor: `${color}33`, color, border: `1px solid ${color}` }}
-    >
-      {status}
-    </span>
-  );
-};
+const LeaveStatusBadge = ({ status }) => <StatusPill status={statusKind(status)}>{status}</StatusPill>;
 
 export default LeaveStatusBadge;

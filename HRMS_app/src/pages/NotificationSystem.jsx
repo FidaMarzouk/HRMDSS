@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bell, CheckCircle, Trash2, Clock, AlertTriangle, Info, FileText, Calendar } from 'lucide-react';
-import Swal from 'sweetalert2';
+import { showError, showInfo } from '../lib/alerts';
 import api from '../lib/api';
 import { useSocketEvent } from '../context/SocketContext';
 import { notifyNotificationsChanged } from '../lib/useUnreadNotifications';
@@ -17,18 +17,7 @@ const NotificationPage = () => {
   // New notifications pushed over the shared socket
   const handleIncoming = useCallback((newNotification) => {
     setNotifications(prev => [newNotification, ...prev]);
-    Swal.fire({
-      icon: 'info',
-      title: newNotification.title,
-      text: newNotification.message,
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      background: '#1E1E1E',
-      color: '#fff'
-    });
+    showInfo(newNotification.title, newNotification.message);
   }, []);
   useSocketEvent('notification', handleIncoming);
 
@@ -81,14 +70,7 @@ const NotificationPage = () => {
         setNotifications([]);
       }
       
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to load notifications',
-        background: '#1E1E1E',
-        color: '#fff',
-        confirmButtonColor: '#3baca5'
-      });
+      showError('Error', 'Failed to load notifications');
     } finally {
       if (isInitialLoad) {
         setLoading(false);
@@ -121,14 +103,7 @@ const markAsRead = async (id) => {
     notifyNotificationsChanged();
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Failed to update notification',
-      background: '#1E1E1E',
-      color: '#fff',
-      confirmButtonColor: '#3baca5'
-    });
+    showError('Error', 'Failed to update notification');
   }
 };
   // Function to mark all notifications as read
@@ -145,14 +120,7 @@ const markAsRead = async (id) => {
       notifyNotificationsChanged();
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to update notifications',
-        background: '#1E1E1E',
-        color: '#fff',
-        confirmButtonColor: '#3baca5'
-      });
+      showError('Error', 'Failed to update notifications');
     }
   };
 
@@ -170,50 +138,27 @@ const markAsRead = async (id) => {
       notifyNotificationsChanged();
     } catch (error) {
       console.error('Error deleting notification:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to delete notification',
-        background: '#1E1E1E',
-        color: '#fff',
-        confirmButtonColor: '#3baca5'
-      });
+      showError('Error', 'Failed to delete notification');
     }
   };
-  // Circuit pattern for background - matches your AdminDashboard
-  const CircuitPattern = () => (
-    <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
-      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <pattern id="circuit" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-          <path d="M20 40 L40 40 L40 20 L60 20 L60 40 L80 40" stroke="#3baca5" fill="none" strokeWidth="2"/>
-          <path d="M20 60 L40 60 L40 80 L60 80 L60 60 L80 60" stroke="#3baca5" fill="none" strokeWidth="2"/>
-          <circle cx="20" cy="40" r="3" fill="#3baca5"/>
-          <circle cx="80" cy="40" r="3" fill="#3baca5"/>
-          <circle cx="20" cy="60" r="3" fill="#3baca5"/>
-          <circle cx="80" cy="60" r="3" fill="#3baca5"/>
-        </pattern>
-        <rect width="100%" height="100%" fill="url(#circuit)" />
-      </svg>
-    </div>
-  );
 
   // Get icon based on notification type
 const getNotificationIcon = (type) => {
   switch(type) {
     case 'leave_request':
-      return <FileText className="w-5 h-5 text-gray-400" />;
+      return <FileText className="w-5 h-5 text-ink-2" />;
     case 'leave_approved':
-      return <CheckCircle className="w-5 h-5 text-green-500" />;
+      return <CheckCircle className="w-5 h-5 text-teal" />;
     case 'leave_rejected':
-      return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+      return <AlertTriangle className="w-5 h-5 text-amber" />;
     case 'event':
-      return <Calendar className="w-5 h-5 text-orange-500" />;
+      return <Calendar className="w-5 h-5 text-amber" />;
     case 'event_invitation':
-      return <Clock className="w-5 h-5 text-purple-500" />;
+      return <Clock className="w-5 h-5 text-violet" />;
     case 'event_response':
-      return <Info className="w-5 h-5 text-blue-500" />;
+      return <Info className="w-5 h-5 text-blue" />;
     default:
-      return <Bell className="w-5 h-5 text-[#3baca5]" />;
+      return <Bell className="w-5 h-5 text-teal" />;
   }
 };
   // Format date
@@ -237,39 +182,38 @@ const getNotificationIcon = (type) => {
 
   return (
     <div className="flex flex-col h-full relative">
-      <CircuitPattern />
       
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center relative z-10">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Bell className="w-6 h-6 text-[#3baca5]" />
+          <h2 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <Bell className="w-6 h-6 text-teal" />
             Notifications
             {unreadCount > 0 && (
-              <span className="ml-2 px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+              <span className="ml-2 px-2 py-1 text-xs bg-red text-on-accent rounded-full">
                 {unreadCount} new
               </span>
             )}
           </h2>
-          <p className="text-gray-400 mt-1">Stay updated with system alerts and messages</p>
+          <p className="text-ink-2 mt-1">Stay updated with system alerts and messages</p>
         </div>
         
         <div className="flex gap-2 mt-4 sm:mt-0">
-          <div className="flex bg-[#2A2A2A] rounded-lg p-1">
+          <div className="flex bg-raise rounded-lg p-1">
             <button 
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${filter === 'all' ? 'bg-[#3baca5] text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${filter === 'all' ? 'bg-teal text-on-accent' : 'text-ink-2 hover:text-ink'}`}
               onClick={() => setFilter('all')}
             >
               All
             </button>
             <button 
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${filter === 'unread' ? 'bg-[#3baca5] text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${filter === 'unread' ? 'bg-teal text-on-accent' : 'text-ink-2 hover:text-ink'}`}
               onClick={() => setFilter('unread')}
             >
               Unread
             </button>
             <button 
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${filter === 'read' ? 'bg-[#3baca5] text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${filter === 'read' ? 'bg-teal text-on-accent' : 'text-ink-2 hover:text-ink'}`}
               onClick={() => setFilter('read')}
             >
               Read
@@ -277,7 +221,7 @@ const getNotificationIcon = (type) => {
           </div>
           
           <button 
-            className="px-3 py-1 text-sm bg-[#3baca5]/20 text-[#3baca5] rounded-md hover:bg-[#3baca5]/30 transition-colors flex items-center gap-1"
+            className="px-3 py-1 text-sm bg-teal/10 text-teal rounded-md hover:bg-teal/15 transition-colors flex items-center gap-1"
             onClick={markAllAsRead}
             disabled={safeNotifications.length === 0}
           >
@@ -291,13 +235,13 @@ const getNotificationIcon = (type) => {
       <div className="relative z-10 flex-grow rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3baca5]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal"></div>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="bg-[#1A1A1A] rounded-lg border border-gray-800 p-8 text-center">
-            <Bell className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-300">No notifications</h3>
-            <p className="text-gray-500 mt-1">
+          <div className="bg-panel rounded-lg border border-line p-8 text-center">
+            <Bell className="w-12 h-12 text-ink-3 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-ink">No notifications</h3>
+            <p className="text-ink-3 mt-1">
               {filter === 'all' 
                 ? "You don't have any notifications yet" 
                 : filter === 'unread' 
@@ -310,18 +254,18 @@ const getNotificationIcon = (type) => {
             {filteredNotifications.map(notification => (
               <div 
                 key={notification._id || `notification-${Math.random()}`} 
-                className={`bg-[#1A1A1A] border ${notification.isRead ? 'border-gray-800' : 'border-l-4 border-l-[#3baca5] border-t border-r border-b border-gray-800'} rounded-lg p-4 flex items-start gap-3 transition-all hover:bg-[#222] relative group`}
+                className={`bg-panel border ${notification.isRead ? 'border-line' : 'border-l-4 border-l-teal border-t border-r border-b border-line'} rounded-lg p-4 flex items-start gap-3 transition-all hover:bg-sunk relative group`}
               >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#2A2A2A] flex items-center justify-center">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-raise flex items-center justify-center">
                   {getNotificationIcon(notification.type)}
                 </div>
                 
                 <div className="flex-grow">
                   <div className="flex justify-between items-start">
-                    <h4 className="font-medium text-white">{notification.title}</h4>
-                    <span className="text-xs text-gray-500">{notification.createdAt ? formatDate(notification.createdAt) : 'Unknown date'}</span>
+                    <h4 className="font-medium text-ink">{notification.title}</h4>
+                    <span className="text-xs text-ink-3">{notification.createdAt ? formatDate(notification.createdAt) : 'Unknown date'}</span>
                   </div>
-                  <p className="text-gray-400 mt-1">{notification.message}</p>
+                  <p className="text-ink-2 mt-1">{notification.message}</p>
                  
                 </div>
                 
@@ -329,7 +273,7 @@ const getNotificationIcon = (type) => {
                   {!notification.isRead && (
                     <button 
                       onClick={() => markAsRead(notification._id)} 
-                      className="p-1 rounded-full hover:bg-[#3baca5]/10 text-[#3baca5]"
+                      className="p-1 rounded-full hover:bg-teal/10 text-teal"
                       title="Mark as read"
                     >
                       <CheckCircle className="w-5 h-5" />
@@ -337,7 +281,7 @@ const getNotificationIcon = (type) => {
                   )}
                   <button 
                     onClick={() => deleteNotification(notification._id)} 
-                    className="p-1 rounded-full hover:bg-red-900/10 text-red-500"
+                    className="p-1 rounded-full hover:bg-red/10 text-red"
                     title="Delete"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -355,11 +299,11 @@ const getNotificationIcon = (type) => {
           <button 
             onClick={loadMoreNotifications}
             disabled={loadingMore}
-            className="px-4 py-2 bg-[#2A2A2A] rounded-md text-gray-300 hover:bg-[#333] transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-raise rounded-md text-ink hover:bg-sunk transition-colors flex items-center gap-2"
           >
             {loadingMore ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#3baca5]"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-teal"></div>
                 Loading...
               </>
             ) : (

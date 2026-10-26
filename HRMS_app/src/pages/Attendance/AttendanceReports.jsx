@@ -101,26 +101,26 @@ const AttendanceReports = ({ onDataRefresh }) => {
   };
   
   return (
-<div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6 bg-[#1a1f23]">
-      <Card className="bg-[#1e262c] border-0 !bg-[#1e262c]">
+<div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6 bg-panel">
+      <Card className="bg-panel border-0">
         <CardHeader className="px-4 py-4 sm:p-6">
           {/* Centered Title */}
           <div className="w-full flex justify-center mb-4">
-            <CardTitle className="text-[#2dd4bf] text-lg sm:text-xl">Attendance Records</CardTitle>
+            <CardTitle className="text-teal text-lg sm:text-xl">Attendance Records</CardTitle>
           </div>
           
           {/* Controls layout */}
           <div className="flex flex-col md:flex-row items-center justify-center gap-3">
             {/* Date Range Selectors */}
             <div className="flex flex-row items-center justify-center gap-2 w-full md:w-auto">
-            <span className="text-white text-sm sm:text-sm px-1">From</span>
+            <span className="text-ink text-sm sm:text-sm px-1">From</span>
               <CustomDatePicker
                 selectedDate={startDate}
                 onChange={setStartDate}
                 className="w-[120px] md:w-[140px]" 
               />
 
-              <span className="text-white text-sm sm:text-sm px-1">to</span>
+              <span className="text-ink text-sm sm:text-sm px-1">to</span>
 
               <CustomDatePicker
                 selectedDate={endDate}
@@ -133,7 +133,7 @@ const AttendanceReports = ({ onDataRefresh }) => {
             <div className="flex items-center gap-2 w-full md:w-auto justify-center">
               <Button
                 onClick={fetchAttendanceData}
-                className="bg-[#2dd4bf] hover:bg-[#2dd4bf]/80 text-black 
+                className="bg-teal hover:bg-teal-hi text-on-accent 
                   text-xs sm:text-sm 
                   h-8 sm:h-10 
                   px-2 sm:px-4 
@@ -146,7 +146,7 @@ const AttendanceReports = ({ onDataRefresh }) => {
               <Button
                 onClick={fetchAttendanceData}
                 variant="secondary"
-                className="bg-[#1E1E1E] hover:bg-[#2A2A2A] text-gray-300 
+                className="bg-panel hover:bg-sunk text-ink 
                   text-xs sm:text-sm 
                   h-8 sm:h-10 
                   px-2 sm:px-4 
@@ -163,76 +163,76 @@ const AttendanceReports = ({ onDataRefresh }) => {
         <CardContent className="px-2 sm:px-6 pb-4 sm:pb-6">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-[#2dd4bf]"></div>
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-teal"></div>
             </div>
           ) : (
-            <div className="rounded-md border border-[#2dd4bf]/10 overflow-hidden">
+            <div className="rounded-md border border-line overflow-hidden">
               <div className="overflow-x-auto w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <Table>
-                  <TableHeader className="bg-[#1a1f23]">
+                  <TableHeader className="bg-panel">
                     <TableRow>
                       {(userRole === 'admin' || userRole === 'manager' || userRole === 'superAdmin') && (
-                        <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Employee</TableHead>
+                        <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Employee</TableHead>
                       )}
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Date</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Status</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Check In</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Check Out</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Late By</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Overtime</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Breaks</TableHead>
-                      <TableHead className="text-[#2dd4bf] text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Production Hours</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Date</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Status</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Check In</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Check Out</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Late By</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Overtime</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Breaks</TableHead>
+                      <TableHead className="text-teal text-xs sm:text-sm whitespace-nowrap p-2 sm:p-4">Production Hours</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {attendanceData.length > 0 ? (
                       attendanceData.map((record) => (
-                        <TableRow key={record._id} className="border-t border-[#2dd4bf]/10">
+                        <TableRow key={record._id} className="border-t border-line">
                           {(userRole === 'admin' || userRole === 'manager' || userRole === 'superAdmin') && (
-                            <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                            <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                               {record.userId?.firstName || '-'} {record.userId?.lastName || ''}
                             </TableCell>
                           )}
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {record.date ? formatDate(record.date) : '-'}
                           </TableCell>
                           <TableCell className="p-2 sm:p-4 whitespace-nowrap">
                             <span 
                               className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-semibold ${
-                                record.status === 'Present' ? 'bg-green-500/20 text-green-400' : 
-                                record.status === 'Late' ? 'bg-yellow-500/20 text-yellow-400' : 
-                                'bg-red-500/20 text-red-400'
+                                record.status === 'Present' ? 'bg-teal/10 text-teal' : 
+                                record.status === 'Late' ? 'bg-amber/10 text-amber' : 
+                                'bg-red/10 text-red'
                               }`}
                             >
                               {record.status || '-'}
                             </span>
                           </TableCell>
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {formatTime(record.checkIn)}
                           </TableCell>
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {record.checkOut ? formatTime(record.checkOut) : 'Not out'}
                           </TableCell>
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {record.lateBy && record.lateBy > 0 ? `${record.lateBy} min` : '-'}
                           </TableCell>
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {record.overtime && record.overtime > 0 ? `${record.overtime} min` : '-'}
                           </TableCell>
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {record.breaks && record.breaks.length > 0 ? (
                               <Popover>
                                 <PopoverTrigger asChild>
-                                  <Button variant="ghost" className="p-1 text-[#2dd4bf] hover:bg-[#2dd4bf]/10 text-xs sm:text-sm h-auto whitespace-nowrap">
+                                  <Button variant="ghost" className="p-1 text-teal hover:bg-teal/10 text-xs sm:text-sm h-auto whitespace-nowrap">
                                     {`${record.breaks.length} (${calculateTotalBreakTime(record.breaks)} min)`}
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="bg-[#1a1f23] border-[#2dd4bf]/30 w-auto max-w-[90vw] sm:max-w-[300px]">
+                                <PopoverContent className="bg-panel border-line w-auto max-w-[90vw] sm:max-w-[300px]">
                                   <div className="space-y-2 p-1 sm:p-2">
-                                    <h4 className="font-semibold text-[#2dd4bf] text-xs sm:text-sm">Break Details</h4>
+                                    <h4 className="font-semibold text-teal text-xs sm:text-sm">Break Details</h4>
                                     <div className="max-h-[30vh] overflow-y-auto">
                                       {record.breaks.map((breakItem, index) => (
-                                        <div key={index} className="text-xs sm:text-sm text-white py-1">
+                                        <div key={index} className="text-xs sm:text-sm text-ink py-1">
                                           Break {index + 1}: {formatTime(breakItem.startTime)} - {breakItem.endTime ? formatTime(breakItem.endTime) : 'Ongoing'}
                                           {breakItem.duration ? ` (${breakItem.duration} min)` : ' (0 min)'}
                                         </div>
@@ -245,7 +245,7 @@ const AttendanceReports = ({ onDataRefresh }) => {
                               '-'
                             )}
                           </TableCell>
-                          <TableCell className="text-white text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
+                          <TableCell className="text-ink text-xs sm:text-sm p-2 sm:p-4 whitespace-nowrap">
                             {record.productionHours ? `${record.productionHours} hrs` : '-'}
                           </TableCell>
                         </TableRow>
@@ -254,7 +254,7 @@ const AttendanceReports = ({ onDataRefresh }) => {
                       <TableRow>
                         <TableCell 
                           colSpan={userRole === 'employee' ? 8 : 9} 
-                          className="text-center py-6 sm:py-8 text-gray-400 text-xs sm:text-sm"
+                          className="text-center py-6 sm:py-8 text-ink-2 text-xs sm:text-sm"
                         >
                           No attendance records found for the selected date range
                         </TableCell>
@@ -265,7 +265,7 @@ const AttendanceReports = ({ onDataRefresh }) => {
               </div>
               
               {/* Mobile scroll indicator */}
-              <div className="md:hidden text-center py-2 text-xs text-[#2dd4bf]/60">
+              <div className="md:hidden text-center py-2 text-xs text-teal/60">
                 Swipe horizontally to see all data
               </div>
             </div>

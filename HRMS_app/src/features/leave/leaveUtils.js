@@ -22,17 +22,12 @@ export const LEAVE_STATUSES = [
 
 export const IN_PROGRESS = ["Pending", "Manager Approved"];
 
-const STATUS_COLORS = {
-  Pending: "#d4a017",
-  "Manager Approved": "#23A49B",
-  "Admin Approved": "#22c55e",
-  "CEO Approved": "#22c55e",
-  "Manager Rejected": "#b91c1c",
-  "Admin Rejected": "#b91c1c",
-  "CEO Rejected": "#b91c1c",
+// Where a request stands, for the shared status pill (shape + colour).
+export const statusKind = (status) => {
+  if (status === "Admin Approved" || status === "CEO Approved") return "approved";
+  if (String(status).endsWith("Rejected")) return "rejected";
+  return "pending";
 };
-
-export const statusColor = (status) => STATUS_COLORS[status] || "#6b7280";
 
 export const formatDate = (date) => formatDay(date);
 

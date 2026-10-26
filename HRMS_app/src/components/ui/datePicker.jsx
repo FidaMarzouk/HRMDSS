@@ -96,9 +96,9 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
 
   return (
     <div className="relative" ref={pickerRef}>
-<div className={`flex items-center border border-[#2dd4bf]/30 rounded bg-[#1a1f23] text-white hover:bg-[#2dd4bf]/10 ${className} h-[40px]`}>
+<div className={`flex items-center border border-line rounded bg-panel text-ink hover:bg-teal/10 ${className} h-[40px]`}>
   <input
-    type="text"
+    type="text focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/25 placeholder:text-ink-3"
     readOnly
     value={getFormattedDisplayDate()}
     onClick={() => setIsOpen(!isOpen)}
@@ -108,34 +108,34 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
   <Button
     variant="ghost"
     onClick={() => setIsOpen(!isOpen)}
-    className="h-full w-12 p-0 mr-0 text-[#2dd4bf] flex items-center justify-center" 
+    className="h-full w-12 p-0 mr-0 text-teal flex items-center justify-center" 
   >
    <CalendarIcon className="h-8 w-8" />
   </Button>
 </div>
       {isOpen && (  
-        <div className="absolute z-50 mt-1 bg-[#1e262c] border border-[#2dd4bf]/30 rounded shadow-lg w-56 right-0 sm:right-auto">
+        <div className="absolute z-50 mt-1 bg-panel border border-line rounded shadow-lg w-56 right-0 sm:right-auto">
           {/* Calendar header */}
-          <div className="border-b border-[#2dd4bf]/30 p-2">
+          <div className="border-b border-line p-2">
             <div className="flex justify-between items-center">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={prevMonth} 
-                className="h-10 w-10 p-0 hover:bg-[#2dd4bf]/10 text-[#2dd4bf]"
+                className="h-10 w-10 p-0 hover:bg-teal/10 text-teal"
               >
                 <ChevronLeft className="h-10 w-10" />
               </Button>
               
               <div className="flex gap-1">
                 <button 
-                  className="px-1 py-1 bg-[#2dd4bf] text-black rounded text-xs"
+                  className="px-1 py-1 bg-teal text-on-accent rounded text-xs"
                   onClick={showMonthsView}
                 >
                   {format(currentMonth, 'MMM')}
                 </button>
                 <button 
-                  className="px-1 py-1 bg-[#2dd4bf] text-black rounded text-xs"
+                  className="px-1 py-1 bg-teal text-on-accent rounded text-xs"
                   onClick={showYearsView}
                 >
                   {format(currentMonth, 'yyyy')}
@@ -146,7 +146,7 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
                 variant="ghost" 
                 size="sm" 
                 onClick={nextMonth} 
-                className="h-10 w-10 p-0 hover:bg-[#2dd4bf]/10 text-[#2dd4bf]"
+                className="h-10 w-10 p-0 hover:bg-teal/10 text-teal"
               >
                 <ChevronRight className="h-10 w-10" />
               </Button>
@@ -161,7 +161,7 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
                   {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
                     <div 
                       key={day} 
-                      className="text-xs text-[#2dd4bf] font-medium py-1"
+                      className="text-xs text-teal font-medium py-1"
                     >
                       {day}
                     </div>
@@ -178,9 +178,9 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
                         onClick={() => isCurrentMonth && handleSelectDay(day)}
                         className={`
                           h-7 w-7 rounded flex items-center justify-center text-xs
-                          ${!isCurrentMonth ? 'text-gray-500' : 
-                            isSameDay(day, selectedDate) ? 'bg-[#2dd4bf] text-black font-medium' : 
-                            isToday(day) ? 'border border-[#2dd4bf]/50 text-[#2dd4bf]' : 'text-white hover:bg-[#2dd4bf]/20'}
+                          ${!isCurrentMonth ? 'text-ink-3' : 
+                            isSameDay(day, selectedDate) ? 'bg-teal text-on-accent font-medium' : 
+                            isToday(day) ? 'border border-teal/50 text-teal' : 'text-ink hover:bg-teal/10'}
                         `}
                       >
                         {format(day, 'd')}
@@ -199,8 +199,8 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
                     onClick={() => handleSelectMonth(index)}
                     className={`
                       p-1 rounded text-xs
-                      ${currentMonth.getMonth() === index ? 'bg-[#2dd4bf] text-black font-medium' : 
-                        'text-white hover:bg-[#2dd4bf]/20'}
+                      ${currentMonth.getMonth() === index ? 'bg-teal text-on-accent font-medium' : 
+                        'text-ink hover:bg-teal/10'}
                     `}
                   >
                     {month.substring(0, 3)}
@@ -217,8 +217,8 @@ const CustomDatePicker = ({ selectedDate, onChange, className }) => {
                     onClick={() => handleSelectYear(year)}
                     className={`
                       p-1 rounded text-xs
-                      ${currentMonth.getFullYear() === year ? 'bg-[#2dd4bf] text-black font-medium' : 
-                        'text-white hover:bg-[#2dd4bf]/20'}
+                      ${currentMonth.getFullYear() === year ? 'bg-teal text-on-accent font-medium' : 
+                        'text-ink hover:bg-teal/10'}
                     `}
                   >
                     {year}
