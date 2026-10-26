@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaRobot } from "react-icons/fa";
 import api, { uploadUrl } from "../../lib/api";
+import { toDateInputValue } from "../../lib/dates";
 
 const EMPTY = {
   firstName: "", lastName: "", email: "", personalEmail: "", phone: "", skills: "",
@@ -15,7 +16,7 @@ const toFormValues = (employee) => ({
   ...EMPTY,
   ...Object.fromEntries(EDITABLE_FIELDS.map((key) => [key, employee?.[key] ?? ""])),
   skills: Array.isArray(employee?.skills) ? employee.skills.join(", ") : employee?.skills || "",
-  hireDate: employee?.hireDate ? String(employee.hireDate).slice(0, 10) : "",
+  hireDate: toDateInputValue(employee?.hireDate),
   departmentId: employee?.departmentId?._id || employee?.departmentId || "",
   password: "",
 });

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { toCompanyDate } = require('../utils/time');
 
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
@@ -8,7 +9,7 @@ const userSchema = new mongoose.Schema({
   position: { type: String, required: true },
   departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department' },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Reference to manager
-  hireDate: { type: Date, required: true },
+  hireDate: { type: Date, required: true, set: toCompanyDate },
   salary: { type: Number, required: true },
   leaveRequestAllowed: { type: Number},
   remainingLeaveDays: { type: Number },
@@ -16,7 +17,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ['admin', 'manager', 'employee','superAdmin'], default: 'employee' },
   profilePicture: { type: String, default: '' },
-  birthdate: { type: Date },
+  birthdate: { type: Date, set: toCompanyDate },
   age: { type: Number },
   personalEmail: { type: String },
   // Single-use password reset / account setup token (stored hashed).

@@ -1,3 +1,5 @@
+import { formatDay } from "../../lib/dates";
+
 export const ROLE_LABELS = {
   employee: "Employee",
   manager: "Manager",
@@ -13,7 +15,7 @@ const ROLE_COLORS = {
 
 export const roleColor = (role) => ROLE_COLORS[role] || "#878285";
 
-export const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : "—");
+export const formatDate = (date) => formatDay(date);
 
 // Case- and whitespace-insensitive "contains" match across several values.
 const normalize = (value) => String(value ?? "").toLowerCase().replace(/\s+/g, "");

@@ -4,6 +4,7 @@ const User = require("../Models/User");
 const leaveHelper = require('../Middlewares/leaveCalculationHelper');
 const { sendNotificationToUser, sendNotificationToRole } = require('../Middlewares/notificationService');
 const { LEAVE_TYPES, REJECTED } = require('../constants/leave');
+const { toCompanyDate } = require('../utils/time');
 
 const formatRange = (request) =>
   `${new Date(request.startDate).toLocaleDateString()} to ${new Date(request.endDate).toLocaleDateString()}`;
@@ -33,10 +34,8 @@ const resolveApprover = async (user) => {
 const CREATED_BY = { employee: 'Employee', manager: 'Manager', admin: 'Admin' };
 
 const hasOverlappingRequest = async (userId, startDate, endDate) => {
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(endDate);
-  end.setHours(0, 0, 0, 0);
+  const start = toCompanyDate(startDate);
+  const end = toCompanyDate(endDate);
 
   const overlapping = await LeaveRequest.exists({
     employeeId: userId,
@@ -122,8 +121,8 @@ exports.createLeaveRequest = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = toCompanyDate(startDate);
+    const end = toCompanyDate(endDate);
     if (!startDate || !endDate || isNaN(start) || isNaN(end)) {
       return res.status(400).json({ message: 'Valid start and end dates are required.' });
     }
