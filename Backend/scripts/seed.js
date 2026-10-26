@@ -323,7 +323,7 @@ async function main() {
   const isOnLeave = (userId, day) => leaves.some((l) =>
     String(l.employeeId) === String(userId) && ['Admin Approved', 'CEO Approved'].includes(l.status) && day >= startOfDay(l.startDate) && day <= startOfDay(l.endDate));
 
-  // --- Attendance: the last 45 working days (today is left for you to punch in)
+  // --- Attendance: the last 45 working days (today is added further down)
   const attendance = [];
   const profiles = new Map(users.map((u) => [String(u._id), {
     punctuality: u.role === 'superAdmin' ? 0.95 : 0.72 + rand() * 0.26,
@@ -370,6 +370,35 @@ async function main() {
       }
     }
     day = addDays(day, -1);
+  }
+
+  // --- Today so far, so the Today view's "On the floor" has people on it.
+  // The demo accounts are left unpunched so you can punch in yourself.
+  const DEMO_EMAILS = new Set(['ceo', 'hr', 'manager', 'employee'].map((n) => `${n}@${DOMAIN}`));
+  if (!isWeekend(TODAY)) {
+    for (const user of users) {
+      if (DEMO_EMAILS.has(user.email) || isOnLeave(user._id, TODAY) || TODAY < startOfDay(user.hireDate) || chance(0.08)) continue;
+      const profile = profiles.get(String(user._id));
+      const late = !chance(profile.punctuality);
+      const checkIn = late ? at(TODAY, 8, 31 + between(0, 40)) : at(TODAY, profile.early ? 7 : 8, profile.early ? between(35, 59) : between(0, 29));
+      if (checkIn > NOW) continue; // not in yet
+      const lateBy = late ? minutes(at(TODAY, 8, 30), checkIn) : 0;
+      const breaks = [];
+      const bStart = at(TODAY, 12, 30 + between(0, 30));
+      if (NOW > bStart && chance(0.85)) {
+        const duration = between(30, 60);
+        const bEnd = new Date(bStart.getTime() + duration * 60000);
+        breaks.push(NOW > bEnd ? { startTime: bStart, endTime: bEnd, duration } : { startTime: bStart });
+      }
+      const goneHome = NOW > at(TODAY, 17, 30) && chance(0.7);
+      const checkOut = goneHome ? at(TODAY, 17, between(30, 59)) : undefined;
+      attendance.push({
+        userId: user._id, date: TODAY, sessionNumber: 1, checkIn, checkOut,
+        status: lateBy > 0 ? 'Late' : 'Present', breaks, lateBy,
+        earlyBy: checkIn < at(TODAY, 8) ? minutes(checkIn, at(TODAY, 8)) : 0,
+        overtime: 0, productionHours: 0,
+      });
+    }
   }
 
   // --- Resources

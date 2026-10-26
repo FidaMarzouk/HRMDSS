@@ -1,20 +1,21 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext.jsx";
+import { BrowserRouter as Router, Navigate, Routes, Route, useSearchParams } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { SocketProvider } from "./context/SocketContext.jsx";
 import ThemeProvider from "./theme/ThemeProvider.jsx";
 import { FeedbackHost } from "./components/ui/feedback-host.jsx";
+import { queryClient } from "./lib/queries.js";
+import { DEFAULT_PAGE, legacyPageKey, pathFor } from "./config/navigation.js";
 import Login from "./pages/auth/login.jsx";
 import PrivateRoute from "./pages/auth/PrivateRoute.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/auth/ResetPassword.jsx";
 import { NotFoundPage, UnauthorizedPage } from "./pages/StatusPage.jsx";
 
-// Each user only ever loads their own role's dashboard.
-const AdminDashboard = lazy(() => import("./pages/dashboards/Admin_Dashboard/AdminDashboard.jsx"));
-const ManagerDashboard = lazy(() => import("./pages/dashboards/Manager_Dashboard/ManagerDashboard.jsx"));
-const EmployeeDashboard = lazy(() => import("./pages/dashboards/Employee_Dashboard/EmployeeDashboard.jsx"));
-const CEODashboard = lazy(() => import("./pages/dashboards/CEO_Dashboard/CEO_Dashboard.jsx"));
+const AppShell = lazy(() => import("./layouts/AppShell.jsx"));
+
+const ALL_ROLES = ["admin", "manager", "employee", "superAdmin"];
 
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-ground" role="status" aria-label="Loading">
@@ -22,39 +23,46 @@ const PageLoader = () => (
   </div>
 );
 
+// /admin-dashboard?page=leave and friends, from before the single /app shell.
+function LegacyRedirect() {
+  const { user } = useAuth();
+  const [params] = useSearchParams();
+  return <Navigate to={pathFor(legacyPageKey(user?.role, params.get("page")))} replace />;
+}
+
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <SocketProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <AuthProvider>
+            <SocketProvider>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-                <Route path="/admin-dashboard" element={<PrivateRoute allowedRoles={['admin']} />}>
-                  <Route index element={<AdminDashboard />} />
-                </Route>
-                <Route path="/manager-dashboard" element={<PrivateRoute allowedRoles={['manager']} />}>
-                  <Route index element={<ManagerDashboard />} />
-                </Route>
-                <Route path="/employee-dashboard" element={<PrivateRoute allowedRoles={['employee']} />}>
-                  <Route index element={<EmployeeDashboard />} />
-                </Route>
-                <Route path="/ceo-dashboard" element={<PrivateRoute allowedRoles={['superAdmin']} />}>
-                  <Route index element={<CEODashboard />} />
-                </Route>
+                  <Route path="/app" element={<PrivateRoute allowedRoles={ALL_ROLES} />}>
+                    <Route index element={<Navigate to={DEFAULT_PAGE} replace />} />
+                    <Route path=":page" element={<AppShell />} />
+                  </Route>
 
-                <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </SocketProvider>
-        </AuthProvider>
-      </Router>
-      <FeedbackHost />
+                  <Route element={<PrivateRoute allowedRoles={ALL_ROLES} />}>
+                    {["/admin-dashboard", "/manager-dashboard", "/employee-dashboard", "/ceo-dashboard"].map((path) => (
+                      <Route key={path} path={path} element={<LegacyRedirect />} />
+                    ))}
+                  </Route>
+
+                  <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
+            </SocketProvider>
+          </AuthProvider>
+        </Router>
+        <FeedbackHost />
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

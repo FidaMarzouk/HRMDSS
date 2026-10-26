@@ -13,6 +13,9 @@ const {
 } = require('../Controllers/calendarController.js');
 const authMiddleware = require('../Middlewares/authMiddleware.js');
 const roleMiddleware = require('../Middlewares/roleMiddleware.js');
+const { broadcastOnSuccess } = require('../Middlewares/notificationService');
+
+const queueChanged = broadcastOnSuccess('queue:changed');
 
 const router = express.Router();
 
@@ -22,17 +25,17 @@ router.use(authMiddleware);
 router.get('/events', getEvents);
 
 // Create an event organized by the current user
-router.post('/event', createEvent);
+router.post('/event', queueChanged, createEvent);
 
 // Update / delete (organizer or admin)
-router.put('/event/:eventId', updateEvent);
-router.delete('/event/:eventId', deleteEvent);
+router.put('/event/:eventId', queueChanged, updateEvent);
+router.delete('/event/:eventId', queueChanged, deleteEvent);
 
 // Current user accepts or declines an invitation
-router.put('/event/:eventId/respond', updateAttendeeStatus);
+router.put('/event/:eventId/respond', queueChanged, updateAttendeeStatus);
 
 // Admin approves or declines an event
-router.put('/event/:eventId/review/:status', roleMiddleware(['admin']), adminReviewEvent);
+router.put('/event/:eventId/review/:status', queueChanged, roleMiddleware(['admin']), adminReviewEvent);
 
 // Resources
 router.get('/resource-availability', checkResourceAvailability);

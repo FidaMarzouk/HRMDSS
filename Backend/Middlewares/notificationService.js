@@ -98,9 +98,25 @@ const sendNotificationToRole = async (role, notification) => {
   }
 };
 
+// Tell every signed-in client that something changed (no data: clients refetch
+// what they are allowed to see). Events: "presence:changed", "queue:changed".
+const broadcast = (event) => {
+  if (io) io.emit(event);
+};
+
+// Route middleware: broadcast `event` after a successful write.
+const broadcastOnSuccess = (event) => (req, res, next) => {
+  res.on('finish', () => {
+    if (res.statusCode < 400) broadcast(event);
+  });
+  next();
+};
+
 module.exports = {
   initializeSocket,
   sendNotificationToUser,
   sendNotificationToRole,
+  broadcast,
+  broadcastOnSuccess,
   getIO: () => io
 };

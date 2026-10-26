@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -24,6 +25,19 @@ export default function ChatComponent() {
       fetchEmployees();
       fetchConversations();
     }, []);
+
+    // ?with=<userId> (from the command palette) opens that conversation once
+    // the colleague list has loaded.
+    const [searchParams] = useSearchParams();
+    const openWith = searchParams.get('with');
+    const openedWithRef = useRef(false);
+    useEffect(() => {
+      if (!openWith || openedWithRef.current || employees.length === 0) return;
+      openedWithRef.current = true;
+      if (employees.some((e) => e._id === openWith)) fetchMessages(openWith);
+      // fetchMessages is recreated each render; this runs once per ?with value.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openWith, employees]);
 
     // Tell the server the messages from this colleague have been read.
     const markConversationRead = (senderId) => {

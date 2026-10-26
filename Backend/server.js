@@ -33,6 +33,7 @@ const chatRoutes = require('./Routes/ChatRoutes');
 const hrDashRoutes = require('./Routes/hrDashboardRoutes');
 const employeeDashRoutes = require('./Routes/employeeDashboardRoutes');
 const managerDashRoutes = require('./Routes/managerDashboardRoutes');
+const todayRoutes = require('./Routes/todayRoutes');
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -84,6 +85,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/hr', hrDashRoutes);
 app.use('/api/employee', employeeDashRoutes);
 app.use('/api/manager', managerDashRoutes);
+app.use('/api', todayRoutes); // /api/today, /api/presence, /api/me/counts, /api/search
 
 // Unknown API routes
 app.use('/api', (req, res) => {

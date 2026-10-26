@@ -17,16 +17,17 @@ function Toast({ item }) {
   const [left, setLeft] = useState(Math.ceil(item.duration / 1000));
   const [paused, setPaused] = useState(false);
 
-  // Count down in whole seconds; hovering or focusing the toast pauses it.
+  // Count down in whole seconds; hovering or focusing pauses plain messages.
+  // A toast with an action (Undo) mirrors a real timer, so it never pauses.
   useEffect(() => {
-    if (paused) return undefined;
+    if (paused && !item.action) return undefined;
     if (left <= 0) {
       dismissToast(item.id);
       return undefined;
     }
     const timer = setTimeout(() => setLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
-  }, [left, paused, item.id]);
+  }, [left, paused, item.id, item.action]);
 
   return (
     <div

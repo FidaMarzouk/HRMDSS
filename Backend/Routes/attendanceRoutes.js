@@ -5,16 +5,19 @@ const {
 } = require('../Controllers/attendanceController.js');
 const authMiddleware = require('../Middlewares/authMiddleware.js');
 const roleMiddleware = require('../Middlewares/roleMiddleware.js');
+const { broadcastOnSuccess } = require('../Middlewares/notificationService');
+
+const presenceChanged = broadcastOnSuccess('presence:changed');
 
 const router = express.Router();
 
 router.use(authMiddleware);
 
 // Self-service: always acts on the authenticated user
-router.post('/punch-in', punchIn);
-router.post('/punch-out', punchOut);
-router.post('/break/start', startBreak);
-router.post('/break/end', endBreak);
+router.post('/punch-in', presenceChanged, punchIn);
+router.post('/punch-out', presenceChanged, punchOut);
+router.post('/break/start', presenceChanged, startBreak);
+router.post('/break/end', presenceChanged, endBreak);
 router.get('/history', getAttendanceHistory);
 router.get('/today', getTodaySessions);
 router.get('/date-range', getUserAttendanceByDateRange);

@@ -1,73 +1,60 @@
-import { Calendar, CalendarDays, Clipboard, Home, Users } from "lucide-react";
-import HRDashboardHomepage from "../pages/dashboards/Admin_Dashboard/HRDashboardHomepage";
-import ManagerDashboardHomepage from "../pages/dashboards/Manager_Dashboard/ManagerDashboardHomepage";
-import EmployeeDashboardHomepage from "../pages/dashboards/Employee_Dashboard/EmployeeDashboardHomepage";
-import AttendanceManager from "../pages/Attendance/AttendanceManager";
-import AttendanceReports from "../pages/Attendance/AttendanceReports";
-import CalendarManager from "../pages/CalendarManager";
-import LeaveRequestsPage from "../features/leave/LeaveRequestsPage";
-import AdminEmployeesPage from "../features/employees/AdminEmployeesPage";
-import EmployeeDirectoryPage from "../features/employees/EmployeeDirectoryPage";
+import { lazy } from "react";
+import { BarChart3, Bell, CalendarDays, Clipboard, Clock, Gauge, MessageCircle, SlidersHorizontal, Sun, Users } from "lucide-react";
 
-// Sidebar entries for each role. Keys are used in the URL (?page=key).
-// Chat, Notifications and Profile are added for everyone by DashboardLayout.
+// Pages are loaded on first visit, so each role only downloads what it opens.
+const TodayPage = lazy(() => import("../features/today/TodayPage"));
+const AdminEmployeesPage = lazy(() => import("../features/employees/AdminEmployeesPage"));
+const EmployeeDirectoryPage = lazy(() => import("../features/employees/EmployeeDirectoryPage"));
+const LeaveRequestsPage = lazy(() => import("../features/leave/LeaveRequestsPage"));
+const AttendanceManager = lazy(() => import("../pages/Attendance/AttendanceManager"));
+const AttendanceReports = lazy(() => import("../pages/Attendance/AttendanceReports"));
+const CalendarManager = lazy(() => import("../pages/CalendarManager"));
+const HRDashboardHomepage = lazy(() => import("../pages/dashboards/Admin_Dashboard/HRDashboardHomepage"));
+const ManagerDashboardHomepage = lazy(() => import("../pages/dashboards/Manager_Dashboard/ManagerDashboardHomepage"));
+const EmployeeDashboardHomepage = lazy(() => import("../pages/dashboards/Employee_Dashboard/EmployeeDashboardHomepage"));
+const NotificationPage = lazy(() => import("../pages/NotificationSystem"));
+const ChatComponent = lazy(() => import("../pages/TeamChat"));
+const ProfilePage = lazy(() => import("../pages/ProfilePage"));
 
-const personalDashboard = {
-  key: "personal",
-  label: "Personal Dashboard",
-  description: "Your personal stats",
-  component: EmployeeDashboardHomepage,
-  props: { personalView: true },
-};
+/*
+ * Pages live at /app/:key. Each role gets the groups below, filtered by `roles`.
+ * `count` names a field of GET /api/me/counts shown as a badge.
+ * `keywords` help the command palette match a page.
+ */
+const PAGES = [
+  // WORK
+  { group: "WORK", key: "today", label: "Today", icon: Sun, component: TodayPage, count: "today", keywords: "home decisions queue floor" },
+  { group: "WORK", key: "people", label: "People", icon: Users, component: AdminEmployeesPage, roles: ["admin"], keywords: "employees departments staff directory" },
+  { group: "WORK", key: "people", label: "My team", icon: Users, component: EmployeeDirectoryPage, roles: ["manager"], keywords: "employees team directory" },
+  { group: "WORK", key: "people", label: "People", icon: Users, component: EmployeeDirectoryPage, roles: ["superAdmin"], keywords: "employees departments directory" },
+  { group: "WORK", key: "leave", label: "Leave", icon: Clipboard, component: LeaveRequestsPage, count: "leave", keywords: "leave requests time off vacation" },
+  { group: "WORK", key: "time", label: "Time", icon: Clock, component: AttendanceManager, roles: ["admin", "manager", "employee"], keywords: "attendance punch in out break" },
+  { group: "WORK", key: "time", label: "Time", icon: Clock, component: AttendanceReports, roles: ["superAdmin"], keywords: "attendance reports" },
+  { group: "WORK", key: "calendar", label: "Calendar", icon: CalendarDays, component: CalendarManager, count: "calendar", keywords: "events meetings missions bookings resources" },
+  // INSIGHT
+  { group: "INSIGHT", key: "analytics", label: "HR analytics", icon: BarChart3, component: HRDashboardHomepage, roles: ["admin", "superAdmin"], keywords: "dashboard charts reports" },
+  { group: "INSIGHT", key: "analytics", label: "Team analytics", icon: BarChart3, component: ManagerDashboardHomepage, roles: ["manager"], keywords: "dashboard charts team" },
+  { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: EmployeeDashboardHomepage, props: { personalView: true }, roles: ["admin", "manager"], keywords: "personal dashboard" },
+  { group: "INSIGHT", key: "my-stats", label: "My stats", icon: Gauge, component: EmployeeDashboardHomepage, roles: ["employee"], keywords: "personal dashboard" },
+  // TALK
+  { group: "TALK", key: "notifications", label: "Notifications", icon: Bell, component: NotificationPage, count: "notifications", keywords: "alerts inbox" },
+  { group: "TALK", key: "chat", label: "Chat", icon: MessageCircle, component: ChatComponent, count: "chat", keywords: "messages team chat" },
+  { group: "TALK", key: "profile", label: "Profile", icon: SlidersHorizontal, component: ProfilePage, keywords: "account settings password" },
+];
 
-const leave = { key: "leave", label: "Leave Requests", description: "Time off requests", icon: Clipboard, component: LeaveRequestsPage };
-const calendar = { key: "calendar", label: "Calendar", description: "Meetings, missions, bookings", icon: CalendarDays, component: CalendarManager };
-const attendance = { key: "attendance", label: "Attendance", description: "Punch in/out and breaks", icon: Calendar, component: AttendanceManager };
+export const GROUPS = ["WORK", "INSIGHT", "TALK"];
 
-export const NAVIGATION = {
-  admin: [
-    {
-      key: "home",
-      label: "Home",
-      description: "Dashboard overview",
-      icon: Home,
-      children: [
-        { key: "home", label: "HR Dashboard", description: "Company overview", component: HRDashboardHomepage },
-        personalDashboard,
-      ],
-    },
-    { key: "employees", label: "Employees", description: "Staff and departments", icon: Users, component: AdminEmployeesPage },
-    leave,
-    attendance,
-    calendar,
-  ],
-  manager: [
-    {
-      key: "home",
-      label: "Home",
-      description: "Dashboard overview",
-      icon: Home,
-      children: [
-        { key: "home", label: "Team Dashboard", description: "Team overview", component: ManagerDashboardHomepage },
-        personalDashboard,
-      ],
-    },
-    { key: "employees", label: "My Team", description: "Your team members", icon: Users, component: EmployeeDirectoryPage },
-    leave,
-    attendance,
-    calendar,
-  ],
-  employee: [
-    { key: "home", label: "Home", description: "Your dashboard", icon: Home, component: EmployeeDashboardHomepage },
-    leave,
-    attendance,
-    calendar,
-  ],
-  superAdmin: [
-    { key: "home", label: "Home", description: "Company overview", icon: Home, component: HRDashboardHomepage },
-    { key: "employees", label: "Directory", description: "Employees and departments", icon: Users, component: EmployeeDirectoryPage },
-    leave,
-    { key: "attendance", label: "Attendance", description: "Attendance reports", icon: Calendar, component: AttendanceReports },
-    calendar,
-  ],
+export const DEFAULT_PAGE = "today";
+
+export const pagesFor = (role) => PAGES.filter((p) => !p.roles || p.roles.includes(role));
+
+export const pathFor = (key) => `/app/${key}`;
+
+// Old dashboard URLs (/admin-dashboard?page=...) map to the new page keys.
+const LEGACY_KEYS = { personal: "my-stats", employees: "people", attendance: "time" };
+// A bare old dashboard URL means "home", which is now Today.
+export const legacyPageKey = (role, oldKey) => {
+  if (!oldKey) return DEFAULT_PAGE;
+  if (oldKey === "home") return role === "employee" ? "my-stats" : "analytics";
+  return LEGACY_KEYS[oldKey] || oldKey;
 };
