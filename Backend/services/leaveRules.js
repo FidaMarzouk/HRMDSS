@@ -4,16 +4,10 @@
 const {
   FINAL_APPROVED, IN_PROGRESS, REJECTED, NOTICE_DAYS, NOTICE_EXEMPT_TYPES, DEFAULT_COVERAGE_RATIO,
 } = require('../constants/leave');
-const { startOfDay, isWeekend, countWorkingDays } = require('../utils/time');
+const { startOfDay, dayKey, isWeekend, countWorkingDays } = require('../utils/time');
 const { idOf } = require('./policies');
 
 const DAY = 24 * 60 * 60 * 1000;
-
-// "YYYY-MM-DD" of a company day.
-const dayKey = (date) => {
-  const d = startOfDay(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 // Move by `n` working days (negative goes back); weekends are skipped.
 const addWorkdays = (date, n) => {

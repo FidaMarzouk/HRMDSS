@@ -1,6 +1,9 @@
 // Time helpers. server.js sets process.env.TZ = 'Africa/Tunis', so local-time
 // Date methods already operate in company time; no manual UTC offsets needed.
 
+// Company time zone, for Mongo date operators ($hour, $dateToString...), which work in UTC by default.
+const COMPANY_TZ = 'Africa/Tunis';
+
 const WORK_START = { hour: 8, minute: 0 };
 const LATE_AFTER = { hour: 8, minute: 30 };
 const WORK_END = { hour: 18, minute: 0 };
@@ -18,6 +21,12 @@ const startOfDay = (date = new Date()) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
   return d;
+};
+
+// "YYYY-MM-DD" of a company day (toISOString would give the UTC day, one day early at midnight).
+const dayKey = (date) => {
+  const d = startOfDay(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const endOfDay = (date = new Date()) => {
@@ -67,6 +76,7 @@ const toCompanyDate = (value) => {
 };
 
 module.exports = {
+  COMPANY_TZ,
   WORK_START,
   LATE_AFTER,
   WORK_END,
@@ -75,6 +85,7 @@ module.exports = {
   PUNCH_WINDOW,
   atTimeToday,
   startOfDay,
+  dayKey,
   endOfDay,
   todayBoundaries,
   isWeekend,

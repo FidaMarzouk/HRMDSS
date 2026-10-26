@@ -9,6 +9,7 @@ const {
   checkResourceAvailability,
   getResources,
   getResourceById,
+  getResourceWeek,
   getUsersInvolved
 } = require('../Controllers/calendarController.js');
 const authMiddleware = require('../Middlewares/authMiddleware.js');
@@ -40,6 +41,8 @@ router.put('/event/:eventId/review/:status', queueChanged, roleMiddleware(['admi
 // Resources
 router.get('/resource-availability', checkResourceAvailability);
 router.get('/resources', getResources);
+// One lane per resource for a week (registered before /resources/:id)
+router.get('/resources/week', getResourceWeek);
 router.get('/resources/:id', getResourceById);
 
 // People who can be invited to events

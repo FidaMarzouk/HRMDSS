@@ -6,6 +6,9 @@ const Department = require('../Models/Department');
 const CalendarEvent = require('../Models/CalendarEvent');
 const mongoose = require('mongoose');
 const { FINAL_APPROVED } = require('../constants/leave');
+const { dayKey } = require('../utils/time');
+const { EXPECTED_WORK_MINUTES } = require('../constants/attendance');
+const analytics = require('../services/analytics');
 
 // Main Employee Dashboard controller (kept as is)
 exports.getEmployeeDashboardData = async (req, res) => {
@@ -99,23 +102,6 @@ exports.getEmployeeDashboardData = async (req, res) => {
     }
 };
 
-// Helper function to count workdays in a date range (excluding weekends)
-function countWorkdaysInRange(startDate, endDate) {
-  let count = 0;
-  const currentDate = new Date(startDate);
-  
-  while (currentDate <= endDate) {
-    // 0 = Sunday, 6 = Saturday
-    const dayOfWeek = currentDate.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      count++;
-    }
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  
-  return count;
-}
-
 // Helper function to get ISO week number
 function getWeekNumber(date) {
   const d = new Date(date);
@@ -132,47 +118,6 @@ function getEndOfDay(date) {
   return end;
 }
 
-// Helper function to get working days in a month (excludes weekends)
-function getWorkingDaysInMonth(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  
-  let workingDays = 0;
-  for (let day = 1; day <= lastDay; day++) {
-    const currentDate = new Date(year, month, day);
-    const dayOfWeek = currentDate.getDay();
-    // 0 is Sunday, 6 is Saturday
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      workingDays++;
-    }
-  }
-  
-  return workingDays;
-}
-
-// Helper function to get used leave days in a period
-async function getUsedLeaveDays(userId, startDate, endDate) {
-  const approvedLeaves = await LeaveRequest.find({
-    employeeId: userId,
-    startDate: { $lte: endDate },
-    endDate: { $gte: startDate },
-    status: { $in: FINAL_APPROVED }
-  });
-  
-  let totalLeaveDays = 0;
-  
-  approvedLeaves.forEach(leave => {
-    // Calculate overlap between leave period and our target period
-    const leaveStart = new Date(Math.max(leave.startDate, startDate));
-    const leaveEnd = new Date(Math.min(leave.endDate, endDate));
-    
-    // Calculate business days between the dates
-    totalLeaveDays += countWorkdaysInRange(leaveStart, leaveEnd);
-  });
-  
-  return totalLeaveDays;
-}
 // Helper function to get team members and manager info
 async function getTeamInfo(userId) {
   try {
@@ -226,85 +171,46 @@ async function getTeamInfo(userId) {
 
 // ===== ATTENDANCE METRICS FUNCTIONS =====
 
+// One status per working day (services/analytics.barcode): several sessions on
+// one day count once, approved leave is not an absence, future days are skipped.
+async function personDays(userId, startDate, endDate) {
+  const today = new Date();
+  const last = endDate < today ? endDate : today;
+  const days = startDate <= last ? analytics.workdays(startDate, last) : [];
+  const [user, sessions, leaves] = await Promise.all([
+    User.findById(userId).select('hireDate').lean(),
+    Attendance.find({ userId, date: { $gte: startDate, $lte: endDate } }).select('userId date checkIn status').lean(),
+    LeaveRequest.find({ employeeId: userId, status: { $in: FINAL_APPROVED }, startDate: { $lte: endDate }, endDate: { $gte: startDate } }).select('employeeId startDate endDate').lean(),
+  ]);
+  const [row] = analytics.barcode({ people: [{ id: String(userId), hireDate: user?.hireDate }], days, sessions, leaves });
+  return { days, cells: row ? row.cells : [] };
+}
+
+const STATUS_LABEL = { present: 'Present', late: 'Late', absent: 'Absent', leave: 'Leave' };
+
 async function getAttendanceRate(userId, startDate, endDate) {
-  // Get all attendance records for the user
-  const attendanceRecords = await Attendance.find({
-    userId: userId,
-    date: { $gte: startDate, $lte: endDate }
-  });
-  
-  // Calculate workdays in range (excluding weekends)
-  const workdays = countWorkdaysInRange(startDate, endDate);
-  
-  // Initialize counters for different attendance statuses
-  let presentDays = 0;
-  let lateDays = 0;
-  let absentDays = 0;
-  
-  // Create a map of dates with attendance records
-  const attendanceMap = {};
-  
-  attendanceRecords.forEach(record => {
-    const dateStr = record.date.toISOString().split('T')[0];
-    
-    // Map status directly from the record
-    if (record.status === 'Present') {
-      attendanceMap[dateStr] = 'Present';
-      presentDays++;
-    } else if (record.status === 'Late') {
-      attendanceMap[dateStr] = 'Late';
-      lateDays++;
-    } else {
-      attendanceMap[dateStr] = 'Absent';
-      absentDays++;
-    }
-  });
-  
-  // Fill in all workdays in the range with status data
-  const trend = [];
-  const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    const dateStr = currentDate.toISOString().split('T')[0];
-    const dayOfWeek = currentDate.getDay();
-    
-    // Only include workdays (skip weekends)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      // If we have an attendance record for this date, use it, otherwise mark as absent
-      if (!attendanceMap[dateStr]) {
-        absentDays++;
-      }
-      
-      trend.push({
-        date: dateStr,
-        status: attendanceMap[dateStr] || 'Absent'
-      });
-    }
-    
-    // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  
-  // Sort by date
-  trend.sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-  // Create summary data for donut chart
-  const statusSummary = [
-    { name: 'Present', value: presentDays, color: '#23A49B' },
-    { name: 'Late', value: lateDays, color: '#F59E0B' },
-    { name: 'Absent', value: absentDays, color: '#EF4444' }
-  ];
-  
-  // Calculate attendance rate (counting late as half present)
-  const attendanceRate = workdays > 0 ? ((presentDays + (lateDays * 0.5)) / workdays) * 100 : 0;
-  
+  const { days, cells } = await personDays(userId, startDate, endDate);
+  const count = (status) => cells.filter((c) => c === status).length;
+  const presentDays = count('present');
+  const lateDays = count('late');
+  const absentDays = count('absent');
+  const leaveDays = count('leave');
+  const expected = presentDays + lateDays + absentDays;
+
   return {
-    rate: parseFloat(attendanceRate.toFixed(2)),
+    rate: expected > 0 ? parseFloat((((presentDays + lateDays) / expected) * 100).toFixed(2)) : 0,
     presentDays,
     lateDays,
     absentDays,
-    totalWorkdays: workdays,
-    trend,
-    statusSummary
+    leaveDays,
+    totalWorkdays: days.length,
+    trend: days.map((day, i) => ({ date: dayKey(day), status: STATUS_LABEL[cells[i]] || 'No record' })),
+    statusSummary: [
+      { name: 'Present', value: presentDays },
+      { name: 'Late', value: lateDays },
+      { name: 'Absent', value: absentDays },
+      { name: 'Leave', value: leaveDays }
+    ]
   };
 }
 
@@ -316,11 +222,21 @@ async function getPunctualityScore(userId, startDate, endDate) {
     // Removed status: 'Present' filter to include Late records
   });
 
-  // Count total recorded days
-  const totalDays = attendanceRecords.length;
-  
+  // One arrival per day: the first session with a punch-in. Later sessions of
+  // the same day and absence records are not arrivals.
+  const firstOfDay = new Map();
+  attendanceRecords
+    .filter(record => record.checkIn)
+    .forEach(record => {
+      const key = dayKey(record.date);
+      const seen = firstOfDay.get(key);
+      if (!seen || record.checkIn < seen.checkIn) firstOfDay.set(key, record);
+    });
+  const arrivals = [...firstOfDay.values()];
+  const totalDays = arrivals.length;
+
   // Count on-time arrivals
-  const onTimeArrivals = attendanceRecords.filter(record =>
+  const onTimeArrivals = arrivals.filter(record =>
     !record.lateBy || record.lateBy === 0
   ).length;
   
@@ -328,14 +244,14 @@ async function getPunctualityScore(userId, startDate, endDate) {
   const lateTrend = [];
   let totalLateMinutes = 0;
   
-  attendanceRecords.forEach(record => {
+  arrivals.forEach(record => {
     // If record has late minutes, add to trend data
     if (record.lateBy && record.lateBy > 0) {
       totalLateMinutes += record.lateBy;
       
       // Add to trend data
       lateTrend.push({
-        date: record.date.toISOString().split('T')[0],
+        date: dayKey(record.date),
         lateMinutes: record.lateBy
       });
     }
@@ -370,7 +286,7 @@ async function getProductionHoursTrend(userId, startDate, endDate) {
   
   // Prepare daily trend data
   const dailyTrend = attendanceRecords.map(record => ({
-    date: record.date.toISOString().split('T')[0],
+    date: dayKey(record.date),
     productionHours: record.productionHours || 0
   }));
   
@@ -435,7 +351,7 @@ async function getOvertimeHours(userId, startDate, endDate) {
   
   // Prepare daily overtime data
   const dailyOvertime = attendanceRecords.map(record => ({
-    date: record.date.toISOString().split('T')[0],
+    date: dayKey(record.date),
     overtimeHours: record.overtime / 60  // Convert minutes to hours
   }));
   
@@ -626,7 +542,7 @@ async function getUpcomingEventsCounter(userId, startDate, endDate) {
       { 'usersInvolved.userId': userObjectId },
       { 'createdBy': userObjectId }
     ],
-    startDateTime: { $gte: startDate },
+    startDateTime: { $gte: new Date() }, // upcoming: from now on
     status: { $ne: 'declined' }
   })
   .sort({ startDateTime: 1 })
@@ -725,7 +641,7 @@ async function getCalendarDensity(userId, startDate, endDate) {
   const currentDate = new Date(start);
   
   while (currentDate <= end) {
-    const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateStr = dayKey(currentDate); // YYYY-MM-DD format
     const dayStart = new Date(currentDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = getEndOfDay(currentDate); 
@@ -848,26 +764,21 @@ async function getEmployeePerformance(userId, startDate, endDate) {
       userId: userId,
       date: { $gte: monthStart, $lte: monthEnd }
     });
-    
-    // Calculate working days in month (excluding weekends)
-    const workingDays = getWorkingDaysInMonth(monthStart);
-    
-    // Get leave days used in the month
-    const leaveDays = await getUsedLeaveDays(userId, monthStart, monthEnd);
-    
-    // Calculate attendance metrics
-    const presentDays = attendanceData.filter(a => a.status === 'Present').length;
-    const lateDays = attendanceData.filter(a => a.status === 'Late').length;
-    const absentDays = attendanceData.filter(a => a.status === 'Absent').length;
-    
-    // Calculate expected working days (adjusted for approved leave)
-    const expectedWorkDays = workingDays - leaveDays;
-    
+    const { cells } = await personDays(userId, monthStart, monthEnd);
+
+    // Calculate attendance metrics (one status per working day)
+    const presentDays = cells.filter(c => c === 'present').length;
+    const lateDays = cells.filter(c => c === 'late').length;
+    const absentDays = cells.filter(c => c === 'absent').length;
+
+    // Expected working days: days that have happened, approved leave excluded
+    const expectedWorkDays = presentDays + lateDays + absentDays;
+
     // Calculate attendance rate
-    const attendanceRate = expectedWorkDays > 0 
-      ? ((presentDays + lateDays) / expectedWorkDays) * 100 
+    const attendanceRate = expectedWorkDays > 0
+      ? ((presentDays + lateDays) / expectedWorkDays) * 100
       : 100;
-    
+
     // Calculate punctuality rate
     const punctualityRate = (presentDays + lateDays) > 0 
       ? (presentDays / (presentDays + lateDays)) * 100 
@@ -877,8 +788,8 @@ async function getEmployeePerformance(userId, startDate, endDate) {
     const totalProductionHours = attendanceData.reduce((sum, record) => 
       sum + (record.productionHours || 0), 0);
     
-    // Expected production hours (8 hours per working day minus leave days)
-    const expectedProductionHours = expectedWorkDays * 8;
+    // Expected production hours (8 h 30 per expected working day)
+    const expectedProductionHours = expectedWorkDays * EXPECTED_WORK_MINUTES / 60;
     
     // Calculate productivity rate
     const productivityRate = expectedProductionHours > 0 
@@ -929,12 +840,11 @@ async function getEmployeePerformance(userId, startDate, endDate) {
     });
     
     if (lastYearAttendance.length > 0) {
-      const lastYearPresentDays = lastYearAttendance.filter(a => a.status === 'Present').length;
-      const lastYearLateDays = lastYearAttendance.filter(a => a.status === 'Late').length;
-      const lastYearWorkingDays = getWorkingDaysInMonth(lastYearMonth);
-      const lastYearLeaveDays = await getUsedLeaveDays(userId, lastYearMonth, lastYearMonthEnd);
-      const lastYearExpectedDays = lastYearWorkingDays - lastYearLeaveDays;
-      
+      const lastYear = await personDays(userId, lastYearMonth, lastYearMonthEnd);
+      const lastYearPresentDays = lastYear.cells.filter(c => c === 'present').length;
+      const lastYearLateDays = lastYear.cells.filter(c => c === 'late').length;
+      const lastYearExpectedDays = lastYearPresentDays + lastYearLateDays + lastYear.cells.filter(c => c === 'absent').length;
+
       const lastYearAttendanceRate = lastYearExpectedDays > 0 
         ? ((lastYearPresentDays + lastYearLateDays) / lastYearExpectedDays) * 100 
         : 100;
@@ -946,7 +856,7 @@ async function getEmployeePerformance(userId, startDate, endDate) {
       const lastYearProductionHours = lastYearAttendance.reduce((sum, record) => 
         sum + (record.productionHours || 0), 0);
       
-      const lastYearExpectedHours = lastYearExpectedDays * 8;
+      const lastYearExpectedHours = lastYearExpectedDays * EXPECTED_WORK_MINUTES / 60;
       
       const lastYearProductivityRate = lastYearExpectedHours > 0 
         ? (lastYearProductionHours / lastYearExpectedHours) * 100 

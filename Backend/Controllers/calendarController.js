@@ -4,6 +4,23 @@ const User = require('../Models/User');
 const Department = require('../Models/Department'); 
 const Resource = require('../Models/Resource'); 
 const { sendNotificationToUser, sendNotificationToRole } = require('../Middlewares/notificationService');
+const clash = require('../services/clash');
+const policies = require('../services/policies');
+const { startOfDay, toCompanyDate, dayKey, isWeekend } = require('../utils/time');
+
+const MODELS = { Resource, CalendarEvent };
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 409 (or 404) with the bookings in the way, for create, move and approve.
+const refuseBooking = (res, check) =>
+  res.status(check.httpStatus || 409).json({
+    message: check.message,
+    status: check.status,
+    conflicts: check.conflicts,
+    // Older clients read `conflictingEvents`.
+    conflictingEvents: check.conflicts,
+  });
+
 
 const isAdminRole = (role) => role === 'admin' || role === 'superAdmin';
 
@@ -51,11 +68,12 @@ const validateEventFields = (eventType, body) => {
       }
       return { valid: true };
     },
-    meeting: () => {
+        meeting: () => {
       if (!body.description || body.description.trim() === '') {
         return { valid: false, status: 'missing_description' };
       }
-      if (!body.location || body.location.trim() === '') {
+      // A booked room counts as the location.
+      if ((!body.location || body.location.trim() === '') && !body.resource) {
         return { valid: false, status: 'missing_location' };
       }
       return { valid: true };
@@ -94,8 +112,8 @@ const buildEventData = (eventType, body, userId, user) => {
   
   // Add type-specific fields
   const typeSpecificFields = {
-    resourceReservation: () => ({ resource: body.resource }),
-    meeting: () => ({ location: body.location }),
+        resourceReservation: () => ({ resource: body.resource }),
+    meeting: () => ({ location: body.location, resource: body.resource || undefined }),
     mission: () => ({ destination: body.destination })
   };
   
@@ -194,62 +212,6 @@ const notifyNewlyAddedUsers = async (event, updatedUsersInvolved, creator) => {
   }
 };
 
-const checkResourceConflicts = async (resourceId, startDateTime, endDateTime, excludeEventId = null) => {
-  // First, check if the resource exists
-  const resource = mongoose.isValidObjectId(resourceId) ? await Resource.findById(resourceId) : null;
-  if (!resource) {
-    return {
-      available: false,
-      resourceStatus: "not_found",
-      message: "Resource not found",
-      conflictingEvents: []
-    };
-  }
-
-  // Check if resource is under maintenance
-  if (resource.status === "maintenance") {
-    return {
-      available: false,
-      resourceStatus: "maintenance",
-      message: "Resource is under maintenance",
-      conflictingEvents: []
-    };
-  }
-
-  // Query for conflicting events
-  let query = {
-    eventType: "resourceReservation",
-    resource: resourceId,
-    status: { $ne: "declined" }, // Ignore declined reservations
-    $or: [
-      { startDateTime: { $lt: new Date(endDateTime), $gte: new Date(startDateTime) } }, // Event starts within the requested period
-      { endDateTime: { $gt: new Date(startDateTime), $lte: new Date(endDateTime) } }, // Event ends within the requested period
-      { 
-        $and: [
-          { startDateTime: { $lte: new Date(startDateTime) } }, 
-          { endDateTime: { $gte: new Date(endDateTime) } } // Existing event fully overlaps the requested period
-        ] 
-      }
-    ]
-  };
-
-  // Exclude the currently edited event (if provided)
-  if (excludeEventId) {
-    query._id = { $ne: excludeEventId };
-  }
-
-  // Find conflicting events
-  const conflictingEvents = await CalendarEvent.find(query)
-    .populate("createdBy", "firstName lastName");
-
-  return {
-    available: conflictingEvents.length === 0,
-    resourceStatus: conflictingEvents.length > 0 ? "unavailable" : "available",
-    message: conflictingEvents.length > 0 ? "Resource already reserved for this time period" : "Resource is available",
-    conflictingEvents: conflictingEvents
-  };
-};
-
 exports.getEvents = async (req, res) => {
   try {
     const { startDate, endDate, eventType, visibility, status } = req.query;
@@ -260,10 +222,14 @@ exports.getEvents = async (req, res) => {
     
     let query = {};
     
-    // Apply date range filtering
+    // Apply date range filtering ("YYYY-MM-DD" are company days; the end day is included)
+    let windowStart = null;
+    let windowEnd = null;
     if (startDate && endDate) {
-      query.startDateTime = { $lte: new Date(endDate) };
-      query.endDateTime = { $gte: new Date(startDate) };
+      windowStart = toCompanyDate(startDate);
+      windowEnd = new Date(toCompanyDate(endDate).getTime() + DAY_MS);
+      query.startDateTime = { $lt: windowEnd };
+      query.endDateTime = { $gt: windowStart };
     }
     
     // Apply role-based and visibility filtering
@@ -293,9 +259,28 @@ exports.getEvents = async (req, res) => {
       .populate('usersInvolved.userId', 'firstName lastName')
       .populate('adminActions.approvedBy', 'firstName lastName')
       .populate('adminActions.declinedBy', 'firstName lastName')
-      .sort({ startDateTime: 1 });
-      
-    res.status(200).json(events);
+      .sort({ startDateTime: 1 })
+      .lean();
+
+    // Clash state for events that hold a resource, compared with every live
+    // booking of those resources (including ones this user cannot see).
+    const resourceIds = [...new Set(events.filter((e) => e.resource).map((e) => String(e.resource._id || e.resource)))];
+    const bookings = resourceIds.length
+      ? await CalendarEvent.find({
+          resource: { $in: resourceIds },
+          status: { $ne: 'declined' },
+          ...(windowStart ? { startDateTime: { $lt: new Date(windowEnd.getTime() + DAY_MS) }, endDateTime: { $gt: new Date(windowStart.getTime() - DAY_MS) } } : {}),
+        })
+          .select('title resource status startDateTime endDateTime')
+          .lean()
+      : [];
+    const withState = events.map((e) => {
+      const own = { ...e, resource: e.resource ? e.resource._id || e.resource : undefined };
+      const clashes = clash.clashesOf(own, bookings);
+      return { ...e, state: clash.bookingState(e, clashes), clashCount: clashes.length };
+    });
+
+    res.status(200).json(withState);
   } catch (error) {
     console.error("Error in getEvents:", error);
     res.status(500).json({ message: error.message });
@@ -324,25 +309,18 @@ exports.createEvent = async (req, res) => {
       return res.status(400).json({ status: fieldsValidation.status });
     }
     
-    // Check resource availability for resource reservations
-    if (eventType === 'resourceReservation') {
-      const availabilityCheck = await checkResourceConflicts(
-        req.body.resource, 
-        req.body.startDateTime, 
-        req.body.endDateTime
-      );
-      
-      if (!availabilityCheck.available) {
-        return res.status(400).json({ 
-          message: availabilityCheck.message,
-          status: 'resource_conflict',
-          conflictingEvents: availabilityCheck.conflictingEvents
-        });
-      }
+        // A booked resource (reservation, or a meeting's room) must be free:
+    // a confirmed booking at that time refuses it with 409; pending requests
+    // at that time are allowed and reported back as clashes.
+    let check = { ok: true, clashes: [] };
+    if (req.body.resource && ['resourceReservation', 'meeting'].includes(eventType)) {
+      check = await clash.checkBooking({ resourceId: req.body.resource, startDateTime: req.body.startDateTime, endDateTime: req.body.endDateTime, models: MODELS });
+      if (!check.ok) return refuseBooking(res, check);
     }
-    
+
     // Build event data structure
     let eventData = buildEventData(eventType, req.body, userId, user);
+    if (eventType === 'meeting' && check.resource && !eventData.location) eventData.location = check.resource.name;
     
     // Set approval status based on user role
     if (isAdminRole(req.user.role)) {
@@ -361,7 +339,7 @@ exports.createEvent = async (req, res) => {
     // Handle notifications
     await handleEventNotifications(event, user, userId);
     
-    res.status(201).json(event);
+        res.status(201).json({ ...event.toObject(), clashes: check.clashes });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -410,18 +388,24 @@ exports.updateEvent = async (req, res) => {
     };
     
     // Add type-specific fields based on event type
-    const typeSpecificFieldMap = {
+        const typeSpecificFieldMap = {
       resourceReservation: ['resource'],
-      meeting: ['location'],
+      meeting: ['location', 'resource'],
       mission: ['destination']
     };
     
     const fieldsToAdd = typeSpecificFieldMap[event.eventType] || [];
-    fieldsToAdd.forEach(field => {
+        fieldsToAdd.forEach(field => {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
       }
     });
+    // A meeting can give its room back ("" or null): unset it.
+    const unset = {};
+    if (event.eventType === 'meeting' && 'resource' in req.body && !req.body.resource) {
+      delete updateData.resource;
+      unset.resource = 1;
+    }
     
     // Add users involved if present
     if (Array.isArray(req.body.usersInvolved)) {
@@ -433,26 +417,19 @@ exports.updateEvent = async (req, res) => {
       });
     }
     
-    // Resource availability check
-    if ((req.body.startDateTime || req.body.endDateTime || req.body.resource) && 
-        event.eventType === 'resourceReservation') {
-      const resourceId = req.body.resource || event.resource;
-      const startDateTime = req.body.startDateTime || event.startDateTime;
-      const endDateTime = req.body.endDateTime || event.endDateTime;
-      
-      const availabilityCheck = await checkResourceConflicts(
-        resourceId, 
-        startDateTime, 
-        endDateTime, 
-        eventId
-      );
-      
-      if (!availabilityCheck.available) {
-        return res.status(400).json({ 
-          status: 'resource_conflict',
-          conflictingEvents: availabilityCheck.conflictingEvents
-        });
-      }
+        // Resource availability check (reservations and meeting rooms)
+    let check = { ok: true, clashes: [] };
+    const resourceId = unset.resource ? null : (req.body.resource || event.resource);
+    if (resourceId && (req.body.startDateTime || req.body.endDateTime || req.body.resource)) {
+      check = await clash.checkBooking({
+        resourceId,
+        startDateTime: req.body.startDateTime || event.startDateTime,
+        endDateTime: req.body.endDateTime || event.endDateTime,
+        excludeId: eventId,
+        models: MODELS,
+      });
+      if (!check.ok) return refuseBooking(res, check);
+      if (event.eventType === 'meeting' && req.body.resource && !req.body.location) updateData.location = check.resource.name;
     }
     
     // Handle visibility validation
@@ -481,23 +458,23 @@ exports.updateEvent = async (req, res) => {
     Object.keys(updateData).forEach((key) => updateData[key] === undefined && delete updateData[key]);
 
     // Check if update object has any properties
-    if (Object.keys(updateData).length === 0) {
+        if (Object.keys(updateData).length === 0 && Object.keys(unset).length === 0) {
       return res.status(400).json({
         message: 'No valid update fields provided',
         status: 'invalid_update'
       });
     }
     
-    const updatedEvent = await CalendarEvent.findByIdAndUpdate(
+        const updatedEvent = await CalendarEvent.findByIdAndUpdate(
       eventId,
-      updateData,
+      Object.keys(unset).length ? { ...updateData, $unset: unset } : updateData,
       { new: true, runValidators: true }
     );
-    
+
     // Handle notifications for newly added users
     await notifyNewlyAddedUsers(event, req.body.usersInvolved, creator);
 
-    res.status(200).json(updatedEvent);
+    res.status(200).json({ ...updatedEvent.toObject(), clashes: check.clashes });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -570,6 +547,22 @@ exports.adminReviewEvent = async (req, res) => {
       return res.status(400).json({ message: 'Status must be approved or declined', status: 'invalid_status' });
     }
 
+        if (!mongoose.isValidObjectId(eventId)) {
+      return res.status(404).json({ message: 'Event not found', status: 'not_found' });
+    }
+    const current = await CalendarEvent.findById(eventId).lean();
+    if (!current) {
+      return res.status(404).json({ message: 'Event not found', status: 'not_found' });
+    }
+    if (current.status !== 'pending') {
+      return res.status(409).json({ message: `This event is already ${current.status}`, status: 'already_reviewed' });
+    }
+    // Clashes are blocked before approval, not discovered on the day.
+    if (status === 'approved' && current.resource) {
+      const check = await clash.checkBooking({ resourceId: current.resource, startDateTime: current.startDateTime, endDateTime: current.endDateTime, excludeId: eventId, models: MODELS });
+      if (!check.ok) return refuseBooking(res, check);
+    }
+
     // Prepare admin action data
     const adminActionData = {};
     
@@ -581,9 +574,10 @@ exports.adminReviewEvent = async (req, res) => {
       adminActionData.declinedAt = new Date();
     }
     
-    const updatedEvent = await CalendarEvent.findByIdAndUpdate(
-      eventId,
-      { 
+        // Conditional on still being pending, so two reviewers cannot both decide.
+    const updatedEvent = await CalendarEvent.findOneAndUpdate(
+      { _id: eventId, status: 'pending' },
+      {
         status: status,
         adminActions: adminActionData
       },
@@ -631,10 +625,15 @@ exports.checkResourceAvailability = async (req, res) => {
       });
     }
 
-    // Call helper function, passing eventId to exclude it from conflicts
-    const availabilityResult = await checkResourceConflicts(resourceId, startDateTime, endDateTime, eventId);
-
-    res.status(200).json(availabilityResult);
+        const check = await clash.checkBooking({ resourceId, startDateTime, endDateTime, excludeId: eventId, models: MODELS });
+    res.status(200).json({
+      available: check.ok,
+      resourceStatus: check.ok ? 'available' : check.status === 'resource_maintenance' ? 'maintenance' : check.status === 'resource_not_found' ? 'not_found' : 'unavailable',
+      message: check.ok ? (check.clashes.length ? 'Other requests are pending for this time' : 'Resource is available') : check.message,
+      conflictingEvents: check.ok ? [] : check.conflicts,
+      // Pending requests for the same time: allowed, the reviewer picks one.
+      pendingClashes: check.ok ? check.clashes : [],
+    });
   } catch (error) {
     console.error("Error checking resource availability:", error);
     res.status(400).json({ message: error.message });
@@ -734,5 +733,92 @@ exports.getResourceById = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Monday of the week containing `date`, in company time.
+const mondayOf = (date) => {
+  const d = startOfDay(date);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+};
+
+// GET /api/calendar/resources/week?start=YYYY-MM-DD&days=5
+// One lane per resource with its bookings in the window: confirmed, pending
+// or clash. Private bookings show as "Private booking" to people who cannot
+// see them; the lane still shows the resource is taken.
+exports.getResourceWeek = async (req, res) => {
+  try {
+    const start = /^\d{4}-\d{2}-\d{2}$/.test(req.query.start || '') ? toCompanyDate(req.query.start) : mondayOf(new Date());
+    const span = Math.min(14, Math.max(1, parseInt(req.query.days, 10) || 5));
+    const end = new Date(start);
+    end.setDate(end.getDate() + span);
+
+    const [resources, events, me] = await Promise.all([
+      Resource.find().sort({ type: 1, name: 1 }).lean(),
+      // A little wider than the window so clashes with bookings that start
+      // before or end after it are still found.
+      CalendarEvent.find({
+        resource: { $ne: null },
+        status: { $ne: 'declined' },
+        startDateTime: { $lt: new Date(end.getTime() + DAY_MS) },
+        endDateTime: { $gt: new Date(start.getTime() - DAY_MS) },
+      })
+        .populate('createdBy', 'firstName lastName')
+        .lean(),
+      User.findById(req.user.id).select('departmentId').lean(),
+    ]);
+
+    const userId = String(req.user.id);
+    const canSee = (e) =>
+      isAdminRole(req.user.role) ||
+      e.visibility === 'public' ||
+      (e.visibility === 'department' && me?.departmentId && String(e.departmentId) === String(me.departmentId)) ||
+      String(e.createdBy?._id || e.createdBy) === userId ||
+      (e.usersInvolved || []).some((u) => String(u.userId) === userId);
+
+    const inWindow = (e) => new Date(e.startDateTime) < end && new Date(e.endDateTime) > start;
+    const byResource = new Map();
+    events.filter(inWindow).forEach((e) => {
+      const clashes = clash.clashesOf(e, events);
+      const visible = canSee(e);
+      const list = byResource.get(String(e.resource)) || [];
+      list.push({
+        id: String(e._id),
+        title: visible ? e.title : 'Private booking',
+        private: !visible,
+        eventType: e.eventType,
+        startDateTime: e.startDateTime,
+        endDateTime: e.endDateTime,
+        status: e.status,
+        state: clash.bookingState(e, clashes),
+        by: visible && e.createdBy ? { id: String(e.createdBy._id), name: `${e.createdBy.firstName} ${e.createdBy.lastName}` } : null,
+        mine: String(e.createdBy?._id || e.createdBy) === userId,
+        clashesWith: clashes.map((c) => ({ id: String(c._id), title: canSee(c) ? c.title : 'Private booking', status: c.status })),
+        // Approving is refused while a confirmed booking overlaps.
+        approvable: e.status === 'pending' && !clash.blocking(clashes).length,
+      });
+      byResource.set(String(e.resource), list);
+    });
+
+    const days = [];
+    for (const d = new Date(start); d < end; d.setDate(d.getDate() + 1)) days.push({ date: dayKey(d), weekend: isWeekend(d) });
+
+    res.json({
+      start: dayKey(start),
+      days,
+      canReview: policies.canReviewEvents(req.user),
+      resources: resources.map((r) => ({
+        id: String(r._id),
+        name: r.name,
+        type: r.type,
+        status: r.status,
+        description: r.description,
+        bookings: (byResource.get(String(r._id)) || []).sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime)),
+      })),
+    });
+  } catch (error) {
+    console.error('Error in getResourceWeek:', error);
+    res.status(500).json({ message: 'Could not load resource bookings' });
   }
 };

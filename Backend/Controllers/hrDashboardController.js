@@ -7,6 +7,12 @@ const Notification = require('../Models/Notification');
 const CalendarEvent = require('../Models/CalendarEvent');
 const Chat = require('../Models/TeamChat');
 const mongoose = require('mongoose');
+const { COMPANY_TZ, dayKey } = require('../utils/time');
+const { IN_PROGRESS } = require('../constants/leave');
+
+// The workforce: active people, without the CEO. Every headcount on this
+// dashboard uses it so the numbers agree with each other.
+const WORKFORCE = { ...User.ACTIVE, role: { $ne: 'superAdmin' } };
 
 // Main HR Dashboard controller
 exports.getHRDashboardData = async (req, res) => {
@@ -44,9 +50,9 @@ exports.getHRDashboardData = async (req, res) => {
         endDate = today; 
       }
     // Get basic company stats
-    const totalEmployees = await User.countDocuments(User.ACTIVE);
+    const totalEmployees = await User.countDocuments(WORKFORCE);
     const totalDepartments = await Department.countDocuments();
-    const pendingLeaveRequests = await LeaveRequest.countDocuments({ status: 'Pending' });
+    const pendingLeaveRequests = await LeaveRequest.countDocuments({ status: { $in: IN_PROGRESS } });
     
     // Company-wide Attendance Analytics
     const attendanceByDepartment = await getAttendanceByDepartment(startDate, endDate);
@@ -193,7 +199,7 @@ async function getAbsenteeismTrend(startDate, endDate) {
     },
     {
       $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$date', timezone: COMPANY_TZ } },
         count: { $sum: 1 }
       }
     },
@@ -204,7 +210,7 @@ async function getAbsenteeismTrend(startDate, endDate) {
   
   // Map absences to date range
   const absenteeismTrend = dateRange.map(date => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = dayKey(date);
     const found = absenteeismData.find(item => item._id === dateStr);
     return {
       date: dateStr,
@@ -372,14 +378,11 @@ async function getLeaveSeasonalPatterns(currentDate) {
     },
     {
       $project: {
-        month: { $month: '$startDate' },
-        year: { $year: '$startDate' },
+        month: { $month: { date: '$startDate', timezone: COMPANY_TZ } },
+        year: { $year: { date: '$startDate', timezone: COMPANY_TZ } },
+        // Inclusive: a leave starting and ending on the same day is 1 day.
         leaveDays: {
-          $dateDiff: {
-            startDate: '$startDate',
-            endDate: '$endDate',
-            unit: 'day'
-          }
+          $add: [{ $dateDiff: { startDate: '$startDate', endDate: '$endDate', unit: 'day', timezone: COMPANY_TZ } }, 1]
         }
       }
     },
@@ -409,8 +412,8 @@ async function getEmployeesByDepartment() {
     {
       $lookup: {
         from: 'users',
-        localField: '_id',
-        foreignField: 'departmentId',
+        let: { departmentId: '$_id' },
+        pipeline: [{ $match: { $expr: { $eq: ['$departmentId', '$$departmentId'] }, ...WORKFORCE } }],
         as: 'employees'
       }
     },
@@ -427,50 +430,36 @@ async function getEmployeesByDepartment() {
 }
 
 async function getSalaryDistribution() {
-  // Define salary ranges
-  const ranges = [
-    { min: 1100, max: 2000 },
-    { min: 2100, max: 3000 },
-    { min: 3100, max: 4000 },
-    { min: 4100, max: 5000 },
+  // Contiguous monthly salary bands in Tunisian dinars (DT); the last one is open.
+  const bands = [
+    { max: 2000, range: 'Under 2,000 DT' },
+    { min: 2000, max: 3000, range: '2,000–2,999 DT' },
+    { min: 3000, max: 4000, range: '3,000–3,999 DT' },
+    { min: 4000, max: 5000, range: '4,000–4,999 DT' },
+    { min: 5000, range: '5,000 DT and above' },
   ];
-  
-  const salaryRanges = [];
-  
-  for (const range of ranges) {
-    const count = await User.countDocuments({ ...User.ACTIVE,
-      salary: { $gte: range.min, $lte: range.max }
-    });
-    
-    let label;
-    if (range.max === Number.MAX_SAFE_INTEGER) {
-      label = `$${range.min}+`;
-    } else {
-      label = `$${range.min} - $${range.max}`;
-    }
-    
-    salaryRanges.push({
-      range: label,
-      count
-    });
-  }
-  
-  return salaryRanges;
+
+  return Promise.all(bands.map(async ({ min, max, range }) => {
+    const salary = { $ne: null };
+    if (min !== undefined) salary.$gte = min;
+    if (max !== undefined) salary.$lt = max;
+    return { range, count: await User.countDocuments({ ...WORKFORCE, salary }) };
+  }));
 }
 
 async function getHeadcountTrend(startDate) {
   // Get current headcount
-  const currentHeadcount = await User.countDocuments({ ...User.ACTIVE, role: { $ne: 'superAdmin' } });
+  const currentHeadcount = await User.countDocuments(WORKFORCE);
   
   // Get users who joined after the start date
-  const newHires = await User.countDocuments({ ...User.ACTIVE,
+  const newHires = await User.countDocuments({ ...WORKFORCE,
     hireDate: { $gte: startDate }
   });
   
   return {
     currentHeadcount,
     newHires,
-    growth: newHires > 0 ? (newHires / (currentHeadcount - newHires)) * 100 : 0
+    growth: newHires > 0 && currentHeadcount > newHires ? (newHires / (currentHeadcount - newHires)) * 100 : 0
   };
 }
 
@@ -617,7 +606,7 @@ async function getPeakCommunicationTimes(startDate, endDate) {
     },
     {
       $project: {
-        hour: { $hour: '$createdAt' }
+        hour: { $hour: { date: '$createdAt', timezone: COMPANY_TZ } }
       }
     },
     {

@@ -1,6 +1,7 @@
 // Pure helpers behind the Today view: the decision queue and presence.
 // No database access, so they are unit-tested in tests/today.test.js.
 const { FINAL_APPROVED, IN_PROGRESS } = require('../constants/leave');
+const clash = require('./clash');
 const { startOfDay, isWeekend } = require('../utils/time');
 const { idOf } = require('./policies');
 
@@ -8,7 +9,6 @@ const DAY = 24 * 60 * 60 * 1000;
 const SOON_DAYS = 7; // "starts in N days" warning below this
 
 const fullName = (u) => (u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '');
-const overlaps = (aStart, aEnd, bStart, bEnd) => aStart <= bEnd && bStart <= aEnd;
 
 // Whole days from today to `date` (0 = today, negative = past).
 const daysUntil = (date, now = new Date()) => Math.round((startOfDay(date) - startOfDay(now)) / DAY);
@@ -61,24 +61,17 @@ const leaveQueueItem = (request, overlapsFound, reviewPath, now) => {
 };
 
 // Bookings of the same resource whose times overlap (pending or approved).
-const eventClashes = (event, others) =>
-  event.resource
-    ? others.filter(
-        (o) =>
-          idOf(o._id) !== idOf(event._id) &&
-          o.resource &&
-          idOf(o.resource) === idOf(event.resource) &&
-          o.status !== 'declined' &&
-          overlaps(new Date(o.startDateTime), new Date(o.endDateTime), new Date(event.startDateTime), new Date(event.endDateTime))
-      )
-    : [];
+// Same rule as the calendar (services/clash.js): touching bookings do not clash.
+const eventClashes = (event, others) => clash.clashesOf(event, others);
 
 const EVENT_TYPE_LABEL = { meeting: 'Meeting', mission: 'Mission', resourceReservation: 'Booking' };
 
 const eventQueueItem = (event, clashes, now) => {
   const startsIn = daysUntil(event.startDateTime, now);
   const flags = [];
-  if (clashes.length) flags.push({ tone: 'red', label: 'Clash', detail: clashes.map((c) => `${c.title} (${fullName(c.createdBy)})`).join(', ') });
+  const confirmed = clash.blocking(clashes);
+  if (confirmed.length) flags.push({ tone: 'red', label: 'Clash with a confirmed booking', detail: confirmed.map((c) => `${c.title} (${fullName(c.createdBy)})`).join(', ') });
+  else if (clashes.length) flags.push({ tone: 'red', label: 'Clash', detail: clashes.map((c) => `${c.title} (${fullName(c.createdBy)}, pending)`).join(', ') });
   if (startsIn < 0) flags.push({ tone: 'red', label: 'Already started' });
   else if (startsIn <= 1) flags.push({ tone: 'amber', label: startsIn === 0 ? 'Today' : 'Tomorrow' });
   return {
@@ -92,6 +85,8 @@ const eventQueueItem = (event, clashes, now) => {
     deadline: event.startDateTime,
     flags,
     approve: { method: 'put', url: `/api/calendar/event/${idOf(event._id)}/review/approved` },
+    // Approving is refused (409) while a confirmed booking overlaps.
+    blocked: confirmed.length ? 'A confirmed booking overlaps this one: open the calendar to resolve it.' : null,
   };
 };
 

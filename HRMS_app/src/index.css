@@ -79,6 +79,14 @@
   .hatch-teal {
     background: repeating-linear-gradient(45deg, rgb(var(--teal)) 0 2px, transparent 2px 5px);
   }
+
+  .hatch-ink {
+    background: repeating-linear-gradient(45deg, rgb(var(--ink-3)) 0 1.5px, transparent 1.5px 4px);
+  }
+
+  .hatch-amber {
+    background: repeating-linear-gradient(45deg, rgb(var(--amber)) 0 2px, rgb(var(--amber) / 0.15) 2px 5px);
+  }
 }
 
 /* The ENOVA logo is dark grey + teal on transparent: lift it on dark surfaces. */
